@@ -1,5 +1,5 @@
 var cart = [];
-var WHATSAPP_NUM = (function(){ try { return localStorage.getItem('hb_whatsapp') || '5511999999999'; } catch(e) { return '5511999999999'; } })();
+var WHATSAPP_NUM = (function(){ try { return localStorage.getItem('hb_whatsapp') || '5511966378328'; } catch(e) { return '5511966378328'; } })();
 var EXTRAS_LIST = [
     { name: 'Picles', price: 2.00 },
     { name: 'Bacon', price: 4.00 },
