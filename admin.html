@@ -11,6 +11,18 @@
         body { font-family: 'Open Sans', sans-serif; background: #111; color: #fff; min-height: 100vh; }
 
         /* ── Login ── */
+        .login-screen { position: fixed; inset: 0; background: #111; display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; }
+        .login-screen.visible { display: flex; }
+        .login-box { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 16px; padding: 40px; width: 320px; text-align: center; }
+        .login-box h1 { font-family: 'Montserrat', sans-serif; font-size: 1.4rem; margin-bottom: 4px; }
+        .login-box h1 span { color: #ffb703; }
+        .login-box .sub { color: #666; font-size: 0.85rem; margin-bottom: 24px; }
+        .login-box input { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #333; background: #111; color: #fff; font-size: 1rem; margin-bottom: 12px; text-align: center; letter-spacing: 2px; }
+        .login-box input:focus { outline: none; border-color: #e63946; }
+        .login-error { color: #e63946; font-size: 0.8rem; margin-bottom: 12px; min-height: 16px; }
+        .btn-login { width: 100%; padding: 12px; border: none; border-radius: 8px; background: #e63946; color: #fff; font-family: 'Montserrat', sans-serif; font-weight: 700; font-size: 1rem; cursor: pointer; transition: 0.3s; }
+        .btn-login:hover { background: #d32f3f; }
+
         /* ── Layout ── */
         .app { display: flex; height: 100vh; }
         .sidebar { width: 240px; background: #1a1a1a; border-right: 1px solid #2a2a2a; display: flex; flex-direction: column; flex-shrink: 0; position: fixed; top: 0; left: 0; bottom: 0; z-index: 100; }
@@ -285,6 +297,17 @@
     </style>
 </head>
 <body>
+    <!-- Login Screen -->
+    <div class="login-screen" id="loginScreen">
+        <div class="login-box">
+            <h1>Navarro <span>Burguer</span></h1>
+            <div class="sub">Painel Administrativo</div>
+            <input type="password" id="loginPass" placeholder="Senha" maxlength="20" onkeydown="if(event.key==='Enter')tryLogin()" autocomplete="off">
+            <div class="login-error" id="loginError"></div>
+            <button class="btn-login" onclick="tryLogin()">Entrar</button>
+        </div>
+    </div>
+
     <!-- Admin App -->
     <div class="app" id="adminApp">
         <!-- Sidebar -->
@@ -317,7 +340,7 @@
                 </div>
             </nav>
             <div class="sidebar-footer">
-                <button class="logout" onclick="location.reload()">↻</button>
+                <button class="logout" onclick="logout()">🚪 Sair</button>
             </div>
         </aside>
 
@@ -2981,6 +3004,36 @@
         setInterval(function() {
             if (currentTab === 'pedidos') renderOrders();
         }, 30000);
+
+        // ── Login ──
+        var ADMIN_PASS = '1234';
+
+        function tryLogin() {
+            var v = document.getElementById('loginPass').value;
+            if (v === ADMIN_PASS) {
+                localStorage.setItem('hb_admin_auth', '1');
+                document.getElementById('loginScreen').classList.remove('visible');
+                document.getElementById('adminApp').style.display = 'flex';
+                renderOrders();
+            } else {
+                document.getElementById('loginError').textContent = 'Senha incorreta. Tente novamente.';
+                document.getElementById('loginPass').value = '';
+                document.getElementById('loginPass').focus();
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('hb_admin_auth');
+            location.reload();
+        }
+
+        (function initLogin() {
+            if (localStorage.getItem('hb_admin_auth') !== '1') {
+                document.getElementById('adminApp').style.display = 'none';
+                document.getElementById('loginScreen').classList.add('visible');
+                document.getElementById('loginPass').focus();
+            }
+        })();
     </script>
 </body>
 </html>
