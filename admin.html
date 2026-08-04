@@ -839,15 +839,17 @@
             } catch (e) { console.error('Firebase getItems error:', e); return []; }
         }
 
-         async function firebaseSaveItems(items) {
+         async function firebaseSaveItems(items, skipToast) {
              try {
+                 var batch = db.batch();
                  var ref = db.collection(ITEMS_COLLECTION).doc(getUserPrefix()).collection('items');
                  for (const item of items) {
-                     await ref.doc(item.id || item.name).set(item);
+                     var docRef = ref.doc(item.id || item.name);
+                     batch.set(docRef, item);
                  }
+                 await batch.commit();
                  localStorage.setItem('hb_prices', JSON.stringify(items));
-                 if (typeof renderPrices === 'function') renderPrices();
-                 showToast('Cardápio salvo no Firestore');
+                 if (!skipToast) showToast('Cardápio salvo no Firestore');
              } catch (e) { console.error('Firebase saveItems error:', e); showToast('Erro ao salvar cardápio'); }
          }
 
@@ -861,15 +863,19 @@
             } catch (e) { console.error('Firebase getStock error:', e); return []; }
         }
 
-        async function firebaseSaveStock(stock) {
-            try {
-                const ref = db.collection(STOCK_COLLECTION).doc(getUserPrefix()).collection('stock');
-                for (const item of stock) {
-                    await ref.doc(item.name).set(item);
-                }
-                showToast('Estoque salvo no Firestore');
-            } catch (e) { console.error('Firebase saveStock error:', e); showToast('Erro ao salvar estoque'); }
-        }
+         async function firebaseSaveStock(stock) {
+             try {
+                 var batch = db.batch();
+                 var ref = db.collection(STOCK_COLLECTION).doc(getUserPrefix()).collection('stock');
+                 for (const item of stock) {
+                     var docRef = ref.doc(item.name);
+                     batch.set(docRef, item);
+                 }
+                 await batch.commit();
+                 localStorage.setItem('hb_stock', JSON.stringify(stock));
+                 showToast('Estoque salvo no Firestore');
+             } catch (e) { console.error('Firebase saveStock error:', e); showToast('Erro ao salvar estoque'); }
+         }
 
         // ── Firestore CRUD: Orders ──
         async function firebaseGetOrders() {
@@ -1228,14 +1234,14 @@
                  if (dragSrc === null) return;
                  var to = parseInt(this.getAttribute('data-index'));
                  if (dragSrc === to) return;
-                 var arr = getItems();
-                 var moved = arr.splice(dragSrc, 1)[0];
-                 var insertAt = to;
-                 if (to > dragSrc) insertAt--;
-                 arr.splice(insertAt, 0, moved);
-                 firebaseSaveItems(arr);
-                 renderPrices();
-             });
+                  var arr = getItems();
+                  var moved = arr.splice(dragSrc, 1)[0];
+                  var insertAt = to;
+                  if (to > dragSrc) insertAt--;
+                  arr.splice(insertAt, 0, moved);
+                  localStorage.setItem('hb_prices', JSON.stringify(arr));
+                  firebaseSaveItems(arr, true);
+              });
              tbody.appendChild(tr);
          });
          document.querySelectorAll('.orig-input, .discount-input').forEach(function(inp) {
