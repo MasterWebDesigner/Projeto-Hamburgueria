@@ -971,9 +971,8 @@
                          } catch (e) { console.error('Sync error for', key, e); }
                      }
                  }
-                  if (statusEl) statusEl.textContent = '✅ Sincronização concluída! ' + count + ' blocos de dados enviados.';
-                  showToast('Sincronização concluída!');
-                  seedDefaultMenu();
+                   if (statusEl) statusEl.textContent = '✅ Sincronização concluída! ' + count + ' blocos de dados enviados.';
+                   showToast('Sincronização concluída!');
               } catch (e) {
                   console.error('Sync error:', e);
                   if (statusEl) statusEl.textContent = '❌ Erro na sincronização: ' + e.message;
@@ -3333,7 +3332,6 @@
          // ── Firebase Init ──
          migrateLocalStorageToFirebase();
          setupFirestoreSync();
-         seedDefaultMenu();
 
         // ── Init ──
         updateStatusUI();
