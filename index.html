@@ -797,7 +797,11 @@
         document.addEventListener('DOMContentLoaded', function() {
             migrateLocalStorageToFirebase();
             setupFirestoreSync();
-            seedDefaultMenu();
+            seedDefaultMenu().then(function() {
+                renderMenu();
+            }).catch(function() {
+                renderMenu();
+            });
         });
     </script>
 </body>
