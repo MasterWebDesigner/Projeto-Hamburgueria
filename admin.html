@@ -839,15 +839,16 @@
             } catch (e) { console.error('Firebase getItems error:', e); return []; }
         }
 
-        async function firebaseSaveItems(items) {
-            try {
-                const ref = db.collection(ITEMS_COLLECTION).doc(getUserPrefix()).collection('items');
-                for (const item of items) {
-                    await ref.doc(item.id || item.name).set(item);
-                }
-                showToast('Cardápio salvo no Firestore');
-            } catch (e) { console.error('Firebase saveItems error:', e); showToast('Erro ao salvar cardápio'); }
-        }
+         async function firebaseSaveItems(items) {
+             try {
+                 localStorage.setItem('hb_prices', JSON.stringify(items));
+                 const ref = db.collection(ITEMS_COLLECTION).doc(getUserPrefix()).collection('items');
+                 for (const item of items) {
+                     await ref.doc(item.id || item.name).set(item);
+                 }
+                 showToast('Cardápio salvo no Firestore');
+             } catch (e) { console.error('Firebase saveItems error:', e); showToast('Erro ao salvar cardápio'); }
+         }
 
         // ── Firestore CRUD: Stock ──
         async function firebaseGetStock() {
@@ -1309,7 +1310,7 @@
             if (!orig) { document.getElementById('npFinal').value = 'R$ 0,00'; return; }
             document.getElementById('npFinal').value = disc > 0 ? 'R$ ' + calcFinal(orig, disc) : 'R$ ' + orig;
         }
-        function saveNewProduct() {
+         async function saveNewProduct() {
             var name = document.getElementById('npName').value.trim();
             if (!name) { showToast('Informe o nome do produto'); return; }
             var section = document.getElementById('npSection').value;
@@ -1335,7 +1336,7 @@
                 items[editingIndex].image = image;
                  items[editingIndex].imageV = Date.now();
                  localStorage.setItem('hb_prices', JSON.stringify(items));
-                 firebaseSaveItems(items);
+                 await firebaseSaveItems(items);
                 renderPrices();
                 closeNewProductModal();
                 editingIndex = -1;
@@ -1381,8 +1382,9 @@
                 } else {
                     items.push(newItem);
                 }
-                firebaseSaveItems(items);
-                renderPrices();
+                 await firebaseSaveItems(items);
+                 localStorage.setItem('hb_prices', JSON.stringify(items));
+                 renderPrices();
                 closeNewProductModal();
                 showToast('"' + name + '" criado com sucesso!');
             }
