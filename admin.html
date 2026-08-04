@@ -792,6 +792,13 @@
                      <div id="syncStatus" style="margin-top:8px;font-size:0.85rem;"></div>
                  </div>
 
+                 <!-- Reset Cardápio -->
+                 <div class="card" style="margin-top:12px;">
+                     <h3>🔄 Resetar Cardápio</h3>
+                     <p style="color:#888;font-size:0.8rem;margin-bottom:12px;">Limpa todos os itens do cardápio no Firestore e recarrega o cardápio padrão.</p>
+                     <button class="btn-action btn-red" onclick="resetCardapio()">🗑️ Resetar Cardápio</button>
+                 </div>
+
              </div>
          </main>
     </div>
@@ -1001,33 +1008,45 @@
          }
 
          // ── Seed: Carregar cardapio padrao do Firestore ──
-         async function seedDefaultMenu() {
+         async function seedDefaultMenu(forceReset) {
              try {
-                 const snapshot = await db.collection(ITEMS_COLLECTION).doc(getUserPrefix()).collection('items').get();
-                 if (snapshot.size > 0) return false;
-
                  var defaultItems = null;
+
+                 // Try fetching from default-menu.json
                  try {
                      const response = await fetch('default-menu.json');
                      if (response.ok) {
                          defaultItems = await response.json();
                      }
                  } catch (fetchErr) {
-                     console.warn('Fetch default-menu.json failed (file:// protocol?):', fetchErr);
+                     console.warn('Fetch default-menu.json failed:', fetchErr);
                  }
 
+                 // Fallback to hardcoded DEFAULT_ITEMS
                  if (!defaultItems) {
-                     // Fallback to DEFAULT_ITEMS with generated IDs
                      defaultItems = JSON.parse(JSON.stringify(DEFAULT_ITEMS));
-                     defaultItems.forEach(function(item, i) {
-                         if (!item.id) item.id = 'default_' + i;
-                     });
                  }
 
-                 const ref = db.collection(ITEMS_COLLECTION).doc(getUserPrefix()).collection('items');
-                 for (const item of defaultItems) {
-                     await ref.doc(item.id).set(item);
+                 // If not force reset, check if collection already has items
+                 if (!forceReset) {
+                     const snapshot = await db.collection(ITEMS_COLLECTION).doc(getUserPrefix()).collection('items').get();
+                     if (snapshot.size > 0) return false;
                  }
+
+                 // Clear existing items first
+                 const ref = db.collection(ITEMS_COLLECTION).doc(getUserPrefix()).collection('items');
+                 const existingDocs = await ref.get();
+                 var batch = db.batch();
+                 existingDocs.forEach(function(doc) { batch.delete(doc.ref); });
+                 await batch.commit();
+
+                 // Seed new items
+                 var saveBatch = db.batch();
+                 for (const item of defaultItems) {
+                     var docRef = ref.doc(item.id);
+                     saveBatch.set(docRef, item);
+                 }
+                 await saveBatch.commit();
                  localStorage.setItem('hb_prices', JSON.stringify(defaultItems));
                  if (typeof renderPrices === 'function') renderPrices();
                  showToast('Cardapio padrao carregado do Firestore!');
@@ -1036,6 +1055,37 @@
                  console.error('Seed error:', e);
                  showToast('Erro ao carregar cardapio padrao');
                  return false;
+             }
+         }
+
+         // ── Reset: Limpar e recarregar cardapio do Firestore ──
+         async function resetCardapio() {
+             if (!confirm('Isso vai apagar todos os itens do cardápio e recarregar o padrão. Continuar?')) return;
+             try {
+                 var defaultItems = null;
+                 try {
+                     const response = await fetch('default-menu.json');
+                     if (response.ok) defaultItems = await response.json();
+                 } catch (e) {}
+                 if (!defaultItems) defaultItems = JSON.parse(JSON.stringify(DEFAULT_ITEMS));
+
+                 const ref = db.collection(ITEMS_COLLECTION).doc(getUserPrefix()).collection('items');
+                 const existingDocs = await ref.get();
+                 var batch = db.batch();
+                 existingDocs.forEach(function(doc) { batch.delete(doc.ref); });
+                 await batch.commit();
+
+                 var saveBatch = db.batch();
+                 for (const item of defaultItems) {
+                     saveBatch.set(ref.doc(item.id), item);
+                 }
+                 await saveBatch.commit();
+                 localStorage.setItem('hb_prices', JSON.stringify(defaultItems));
+                 if (typeof renderPrices === 'function') renderPrices();
+                 showToast('Cardápio resetado com sucesso!');
+             } catch (e) {
+                 console.error('Reset error:', e);
+                 showToast('Erro ao resetar cardápio');
              }
          }
 
@@ -1124,49 +1174,47 @@
         }
 
         var DEFAULT_ITEMS = [
-            { section: 'Lanches', name: 'Nava\'s Kids', original: '19,99', discount: 1, price: '19,90', description: 'Pão de brioche, carne de 100g, queijo mussarela e maionese verde da casa.', image: 'imagens/Lanche1.png', composition: [ { stockName: 'Pão de Brioche', qty: 1 }, { stockName: 'Carne Bovina 100g', qty: 1 }, { stockName: 'Queijo Mussarela', qty: 1 }, { stockName: 'Maionese Verde da Casa', qty: 1 }, { stockName: 'Cerveja Skol', qty: 1 } ] },
-            { section: '', name: 'Nava\'s Salada', original: '25,99', discount: 27, price: '18,90', description: 'Pão de brioche, carne de 100g, mussarela fatiada, alface americana e maionese verde da casa.', image: 'imagens/Lanche2.png', composition: [ { stockName: 'Pão de Brioche', qty: 1 }, { stockName: 'Carne Bovina 100g', qty: 1 }, { stockName: 'Queijo Mussarela', qty: 1 }, { stockName: 'Alface', qty: 1 }, { stockName: 'Maionese Verde da Casa', qty: 1 } ] },
-            { section: '', name: 'Nava\'s Onion', original: '26,99', discount: 19, price: '21,90', description: 'Pão de brioche, carne de 100g, queijo mussarela, cebola empanada (onion rings), barbecue e maionese verde da casa.', image: 'imagens/LancheOnion.jpg', composition: [ { stockName: 'Pão de Brioche', qty: 1 }, { stockName: 'Carne Bovina 100g', qty: 1 }, { stockName: 'Queijo Mussarela', qty: 1 }, { stockName: 'Cebola Empanada', qty: 1 }, { stockName: 'Barbecue', qty: 1 } ] },
-            { section: '', name: 'Nava\'s Cheddar', original: '25,99', discount: 15, price: '21,90', description: 'Pão de brioche, carne de 100g, cheddar cremoso, bacon picado e maionese verde da casa.', image: 'imagens/Lanche4.png', composition: [ { stockName: 'Pão de Brioche', qty: 1 }, { stockName: 'Carne Bovina 100g', qty: 1 }, { stockName: 'Queijo Cheddar', qty: 1 }, { stockName: 'Bacon', qty: 1 }, { stockName: 'Maionese Verde da Casa', qty: 1 } ] },
-            { section: '', name: 'Nava\'s Bacon', original: '25,90', discount: 15, price: '21,90', description: 'Pão de brioche, carne de 100g, mussarela fatiada, bacon fatiado, cebola caramelizada, barbecue e maionese verde da casa.', image: 'imagens/Lanche5.png', composition: [ { stockName: 'Pão de Brioche', qty: 1 }, { stockName: 'Carne Bovina 100g', qty: 1 }, { stockName: 'Queijo Mussarela', qty: 1 }, { stockName: 'Bacon', qty: 1 }, { stockName: 'Cebola Caramelizada', qty: 1 }, { stockName: 'Barbecue', qty: 1 }, { stockName: 'Maionese Verde da Casa', qty: 1 } ] },
-            { section: '', name: 'Nava\'s Duplo Cheddar', original: '30,99', discount: 6, price: '28,90', description: 'Pão de brioche, duas carne de 100g, cheddar cremoso, bacon picado e maionese verde da casa.', image: 'imagens/Lanche6.png', composition: [ { stockName: 'Pão de Brioche', qty: 1 }, { stockName: 'Carne Bovina 100g', qty: 2 }, { stockName: 'Queijo Cheddar', qty: 1 }, { stockName: 'Bacon', qty: 1 }, { stockName: 'Maionese Verde da Casa', qty: 1 } ] },
-            { section: 'Lanche Especial', name: 'Murph\'s Barbecue', original: '46,90', discount: 0, price: '46,90', description: '', image: '' },
-            { section: '', name: 'Murph\'s Supreme', original: '44,90', discount: 0, price: '44,90', description: '', image: '' },
-            { section: '', name: 'Murph\'s Gorgonzola', original: '48,90', discount: 0, price: '48,90', description: '', image: '' },
-            { section: '', name: 'Murph\'s Texas', original: '49,90', discount: 0, price: '49,90', description: '', image: '' },
-            { section: '', name: 'Murph\'s Costela', original: '52,90', discount: 0, price: '52,90', description: '', image: '' },
-            { section: '', name: 'Murph\'s Filé Mignon', original: '56,90', discount: 0, price: '56,90', description: '', image: '' },
-            { section: '', name: 'Murph\'s Frango Crispy', original: '39,90', discount: 0, price: '39,90', description: '', image: '' },
-            { section: '', name: 'Murph\'s Veggie', original: '36,90', discount: 0, price: '36,90', description: '', image: '' },
-            { section: '', name: 'Murph\'s Duplo', original: '54,90', discount: 0, price: '54,90', description: '', image: '' },
-            { section: '🍟 Porções', name: 'Batata Frita', original: '18,90', discount: 0, price: '18,90', description: '', image: '' },
-            { section: '', name: 'Batata Cheddar Bacon', original: '26,90', discount: 0, price: '26,90', description: '', image: '' },
-            { section: '', name: 'Onion Rings', original: '19,90', discount: 0, price: '19,90', description: '', image: '' },
-            { section: '', name: 'Iscas de Frango', original: '24,90', discount: 0, price: '24,90', description: '', image: '' },
-            { section: '', name: 'Calabresa Acebolada', original: '22,90', discount: 0, price: '22,90', description: '', image: '' },
-            { section: '', name: 'Polenta Frita', original: '17,90', discount: 0, price: '17,90', description: '', image: '' },
-            { section: '', name: 'Mandioca Frita', original: '18,90', discount: 0, price: '18,90', description: '', image: '' },
-            { section: '', name: 'Mix de Fritas', original: '28,90', discount: 0, price: '28,90', description: '', image: '' },
-            { section: '🥤 Milk Shakes', name: 'Chocolate', original: '16,90', discount: 0, price: '16,90', description: '', image: '' },
-            { section: '', name: 'Morango', original: '16,90', discount: 0, price: '16,90', description: '', image: '' },
-            { section: '', name: 'Baunilha', original: '16,90', discount: 0, price: '16,90', description: '', image: '' },
-            { section: '', name: 'Ovomaltine', original: '19,90', discount: 0, price: '19,90', description: '', image: '' },
-            { section: '', name: 'Ninho com Nutella', original: '22,90', discount: 0, price: '22,90', description: '', image: '' },
-            { section: '', name: 'Oreo', original: '19,90', discount: 0, price: '19,90', description: '', image: '' },
-            { section: '', name: 'Doce de Leite', original: '18,90', discount: 0, price: '18,90', description: '', image: '' },
-            { section: '', name: 'Menta com Chocolate', original: '19,90', discount: 0, price: '19,90', description: '', image: '' },
-            { section: '', name: 'Paçoca', original: '18,90', discount: 0, price: '18,90', description: '', image: '' },
-            { section: '🧃 Sucos', name: 'Laranja', original: '8,90', discount: 0, price: '8,90', description: '', image: '' },
-            { section: '', name: 'Limão', original: '7,90', discount: 0, price: '7,90', description: '', image: '' },
-            { section: '', name: 'Maracujá', original: '9,90', discount: 0, price: '9,90', description: '', image: '' },
-            { section: '', name: 'Abacaxi com Hortelã', original: '9,90', discount: 0, price: '9,90', description: '', image: '' },
-            { section: '', name: 'Morango', original: '10,90', discount: 0, price: '10,90', description: '', image: '' },
-            { section: '', name: 'Acerola', original: '9,90', discount: 0, price: '9,90', description: '', image: '' },
-            { section: '🥤 Refrigerantes', name: 'Coca-Cola Lata', original: '5,90', discount: 0, price: '5,90', description: '', image: '' },
-            { section: '', name: 'Guaraná Lata', original: '5,90', discount: 0, price: '5,90', description: '', image: '' },
-            { section: '', name: 'Fanta Laranja Lata', original: '5,90', discount: 0, price: '5,90', description: '', image: '' },
-            { section: '', name: 'Sprite Lata', original: '5,90', discount: 0, price: '5,90', description: '', image: '' },
-            { section: '', name: 'Água Mineral', original: '3,90', discount: 0, price: '3,90', description: '', image: '' },
+            { id: 'nava_kids', section: 'Lanches', name: 'Nava\'s Kids', original: '19,99', discount: 1, price: '19,90', active: true, description: 'Pão de brioche, carne de 100g, queijo mussarela e maionese verde da casa.', image: 'imagens/Lanche1.png', composition: [ { stockName: 'Pão de Brioche', qty: 1 }, { stockName: 'Carne Bovina 100g', qty: 1 }, { stockName: 'Queijo Mussarela', qty: 1 }, { stockName: 'Maionese Verde da Casa', qty: 1 } ] },
+            { id: 'nava_salada', section: '', name: 'Nava\'s Salada', original: '25,99', discount: 27, price: '18,90', active: true, description: 'Pão de brioche, carne de 100g, mussarela fatiada, alface americana e maionese verde da casa.', image: 'imagens/Lanche2.png', composition: [ { stockName: 'Pão de Brioche', qty: 1 }, { stockName: 'Carne Bovina 100g', qty: 1 }, { stockName: 'Queijo Mussarela', qty: 1 }, { stockName: 'Alface', qty: 1 }, { stockName: 'Maionese Verde da Casa', qty: 1 } ] },
+            { id: 'nava_onion', section: '', name: 'Nava\'s Onion', original: '26,99', discount: 19, price: '21,90', active: true, description: 'Pão de brioche, carne de 100g, queijo mussarela, cebola empanada (onion rings), barbecue e maionese verde da casa.', image: 'imagens/LancheOnion.jpg', composition: [ { stockName: 'Pão de Brioche', qty: 1 }, { stockName: 'Carne Bovina 100g', qty: 1 }, { stockName: 'Queijo Mussarela', qty: 1 }, { stockName: 'Cebola Empanada', qty: 1 }, { stockName: 'Barbecue', qty: 1 } ] },
+            { id: 'nava_cheddar', section: '', name: 'Nava\'s Cheddar', original: '25,99', discount: 15, price: '21,90', active: true, description: 'Pão de brioche, carne de 100g, cheddar cremoso, bacon picado e maionese verde da casa.', image: 'imagens/Lanche4.png', composition: [ { stockName: 'Pão de Brioche', qty: 1 }, { stockName: 'Carne Bovina 100g', qty: 1 }, { stockName: 'Queijo Cheddar', qty: 1 }, { stockName: 'Bacon', qty: 1 }, { stockName: 'Maionese Verde da Casa', qty: 1 } ] },
+            { id: 'nava_bacon', section: '', name: 'Nava\'s Bacon', original: '25,90', discount: 15, price: '21,90', active: true, description: 'Pão de brioche, carne de 100g, mussarela fatiada, bacon fatiado, cebola caramelizada, barbecue e maionese verde da casa.', image: 'imagens/Lanche5.png', composition: [ { stockName: 'Pão de Brioche', qty: 1 }, { stockName: 'Carne Bovina 100g', qty: 1 }, { stockName: 'Queijo Mussarela', qty: 1 }, { stockName: 'Bacon', qty: 1 }, { stockName: 'Cebola Caramelizada', qty: 1 }, { stockName: 'Barbecue', qty: 1 }, { stockName: 'Maionese Verde da Casa', qty: 1 } ] },
+            { id: 'nava_duplo', section: '', name: 'Nava\'s Duplo Cheddar', original: '30,99', discount: 6, price: '28,90', active: true, description: 'Pão de brioche, duas carnes de 100g, cheddar cremoso, bacon picado e maionese verde da casa.', image: 'imagens/Lanche6.png', composition: [ { stockName: 'Pão de Brioche', qty: 1 }, { stockName: 'Carne Bovina 100g', qty: 2 }, { stockName: 'Queijo Cheddar', qty: 1 }, { stockName: 'Bacon', qty: 1 }, { stockName: 'Maionese Verde da Casa', qty: 1 } ] },
+            { id: 'murphs_barbecue', section: 'Lanche Especial', name: 'Murph\'s Barbecue', original: '46,90', discount: 0, price: '46,90', active: true, description: '', image: '' },
+            { id: 'murphs_supreme', section: '', name: 'Murph\'s Supreme', original: '44,90', discount: 0, price: '44,90', active: true, description: '', image: '' },
+            { id: 'murphs_gorgonzola', section: '', name: 'Murph\'s Gorgonzola', original: '48,90', discount: 0, price: '48,90', active: true, description: '', image: '' },
+            { id: 'murphs_texas', section: '', name: 'Murph\'s Texas', original: '49,90', discount: 0, price: '49,90', active: true, description: '', image: '' },
+            { id: 'murphs_costela', section: '', name: 'Murph\'s Costela', original: '52,90', discount: 0, price: '52,90', active: true, description: '', image: '' },
+            { id: 'murphs_file', section: '', name: 'Murph\'s Filé Mignon', original: '56,90', discount: 0, price: '56,90', active: true, description: '', image: '' },
+            { id: 'murphs_chicken', section: '', name: 'Murph\'s Frango Crispy', original: '39,90', discount: 0, price: '39,90', active: true, description: '', image: '' },
+            { id: 'murphs_veggie', section: '', name: 'Murph\'s Veggie', original: '36,90', discount: 0, price: '36,90', active: true, description: '', image: '' },
+            { id: 'murphs_duplo', section: '', name: 'Murph\'s Duplo', original: '54,90', discount: 0, price: '54,90', active: true, description: '', image: '' },
+            { id: 'batata_frita', section: '🍟 Porções', name: 'Batata Frita', original: '18,90', discount: 0, price: '18,90', active: true, description: '', image: '' },
+            { id: 'batata_cheddar', section: '', name: 'Batata Cheddar Bacon', original: '26,90', discount: 0, price: '26,90', active: true, description: '', image: '' },
+            { id: 'onion_rings', section: '', name: 'Onion Rings', original: '19,90', discount: 0, price: '19,90', active: true, description: '', image: '' },
+            { id: 'iscas_frango', section: '', name: 'Iscas de Frango', original: '19,90', discount: 0, price: '19,90', active: true, description: '', image: '' },
+            { id: 'calabresa', section: '', name: 'Calabresa Acebolada', original: '19,90', discount: 0, price: '19,90', active: true, description: '', image: '' },
+            { id: 'polenta', section: '', name: 'Polenta Frita', original: '19,90', discount: 0, price: '19,90', active: true, description: '', image: '' },
+            { id: 'mandioca', section: '', name: 'Mandioca Frita', original: '19,90', discount: 0, price: '19,90', active: true, description: '', image: '' },
+            { id: 'mix_fritas', section: '', name: 'Mix de Fritas', original: '29,90', discount: 0, price: '29,90', active: true, description: '', image: '' },
+            { id: 'chocolate', section: '🥤 Milk Shakes', name: 'Chocolate', original: '14,90', discount: 0, price: '14,90', active: true, description: '', image: '' },
+            { id: 'morango', section: '', name: 'Morango', original: '14,90', discount: 0, price: '14,90', active: true, description: '', image: '' },
+            { id: 'baunilha', section: '', name: 'Baunilha', original: '14,90', discount: 0, price: '14,90', active: true, description: '', image: '' },
+            { id: 'ovomaltine', section: '', name: 'Ovomaltine', original: '14,90', discount: 0, price: '14,90', active: true, description: '', image: '' },
+            { id: 'ninho', section: '', name: 'Ninho com Nutella', original: '14,90', discount: 0, price: '14,90', active: true, description: '', image: '' },
+            { id: 'oreo', section: '', name: 'Oreo', original: '14,90', discount: 0, price: '14,90', active: true, description: '', image: '' },
+            { id: 'doce_leite', section: '', name: 'Doce de Leite', original: '14,90', discount: 0, price: '14,90', active: true, description: '', image: '' },
+            { id: 'acai', section: '🧃 Sucos', name: 'Açaí', original: '12,90', discount: 0, price: '12,90', active: true, description: '', image: '' },
+            { id: 'limao', section: '', name: 'Limão', original: '12,90', discount: 0, price: '12,90', active: true, description: '', image: '' },
+            { id: 'maracuja', section: '', name: 'Maracujá', original: '12,90', discount: 0, price: '12,90', active: true, description: '', image: '' },
+            { id: 'morango_suco', section: '', name: 'Morango', original: '12,90', discount: 0, price: '12,90', active: true, description: '', image: '' },
+            { id: 'abacaxi', section: '', name: 'Abacaxi', original: '12,90', discount: 0, price: '12,90', active: true, description: '', image: '' },
+            { id: 'uva', section: '', name: 'Uva', original: '12,90', discount: 0, price: '12,90', active: true, description: '', image: '' },
+            { id: 'coca', section: '🥤 Refrigerantes', name: 'Coca-Cola Lata', original: '5,90', discount: 0, price: '5,90', active: true, description: '', image: '' },
+            { id: 'guarana', section: '', name: 'Guaraná Lata', original: '5,90', discount: 0, price: '5,90', active: true, description: '', image: '' },
+            { id: 'fanta', section: '', name: 'Fanta Laranja Lata', original: '5,90', discount: 0, price: '5,90', active: true, description: '', image: '' },
+            { id: 'sprite', section: '', name: 'Sprite Lata', original: '5,90', discount: 0, price: '5,90', active: true, description: '', image: '' },
+            { id: 'agua', section: '', name: 'Água Mineral', original: '3,90', discount: 0, price: '3,90', active: true, description: '', image: '' }
         ];
 
         var currentTab = (function() { try { var t = localStorage.getItem('hb_admin_tab'); return ['pedidos','cardapio','estoque','faturamento','fidelidade','configuracoes'].indexOf(t) >= 0 ? t : 'pedidos'; } catch(e) { return 'pedidos'; } })();
@@ -1195,13 +1243,10 @@
                      }
                  } catch(e) {}
              }
-             // Fallback: use DEFAULT_ITEMS with IDs
+             // Fallback: use DEFAULT_ITEMS (which have proper IDs)
              var defaults = JSON.parse(JSON.stringify(DEFAULT_ITEMS));
-             defaults.forEach(function(item, i) {
+             defaults.forEach(function(item) {
                  item.active = true;
-                 item.description = '';
-                 item.image = '';
-                 item.id = item.id || 'default_' + i;
              });
              return defaults;
          }
