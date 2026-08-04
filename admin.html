@@ -2950,6 +2950,19 @@
             renderCompositionList();
         }
 
+        // ── Salvar APENAS 1 item no Firestore (sem mexer nos outros) ──
+        async function firebaseUpdateSingleItem(item) {
+            try {
+                var ref = db.collection(ITEMS_COLLECTION).doc(getUserPrefix()).collection('items');
+                await ref.doc(item.id || item.name).set(item);
+                var items = getItems();
+                for (var i = 0; i < items.length; i++) {
+                    if (items[i].id === item.id) { items[i] = item; break; }
+                }
+                localStorage.setItem('hb_prices', JSON.stringify(items));
+            } catch (e) { console.error('firebaseUpdateSingleItem error:', e); }
+        }
+
         function closeComposition() {
             document.getElementById('compositionModal').classList.remove('open');
         }
@@ -3004,7 +3017,7 @@
             for (var i = 0; i < item.composition.length; i++) {
                 if (item.composition[i].stockName === name) {
                     item.composition[i].qty += qty;
-                    firebaseSaveItems(items);
+                    firebaseUpdateSingleItem(item);
                     renderCompositionList();
                     document.getElementById('compAddQty').value = 1;
                     sel.value = '';
@@ -3013,7 +3026,7 @@
                 }
             }
             item.composition.push({ stockName: name, qty: qty });
-            firebaseSaveItems(items);
+            firebaseUpdateSingleItem(item);
             renderCompositionList();
             document.getElementById('compAddQty').value = 1;
             sel.value = '';
@@ -3025,7 +3038,7 @@
             var item = items[compIndex];
             if (!item || !item.composition) return;
             item.composition.splice(ci, 1);
-            firebaseSaveItems(items);
+            firebaseUpdateSingleItem(item);
             renderCompositionList();
             showToast('Item removido da composição');
         }
@@ -3043,7 +3056,7 @@
                 }
             });
             item.composition = comp.filter(function(c) { return c.qty > 0; });
-            firebaseSaveItems(items);
+            firebaseUpdateSingleItem(item);
             closeComposition();
             renderPrices();
             showToast('Composição salva para "' + item.name + '"');
