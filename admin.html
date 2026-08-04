@@ -841,11 +841,12 @@
 
          async function firebaseSaveItems(items) {
              try {
-                 const ref = db.collection(ITEMS_COLLECTION).doc(getUserPrefix()).collection('items');
+                 var ref = db.collection(ITEMS_COLLECTION).doc(getUserPrefix()).collection('items');
                  for (const item of items) {
                      await ref.doc(item.id || item.name).set(item);
                  }
                  localStorage.setItem('hb_prices', JSON.stringify(items));
+                 if (typeof renderPrices === 'function') renderPrices();
                  showToast('Cardápio salvo no Firestore');
              } catch (e) { console.error('Firebase saveItems error:', e); showToast('Erro ao salvar cardápio'); }
          }
@@ -1156,29 +1157,23 @@
         function parseBR(v) { return parseFloat((v+'').replace(/\./g,'').replace(',','.')); }
         function fmtBR(n) { return n.toFixed(2).replace('.', ','); }
 
-        function getItems() {
-            var stored = localStorage.getItem('hb_prices');
-            if (stored) {
-                try {
-                    var parsed = JSON.parse(stored);
-                    if (parsed.length && parsed[0].hasOwnProperty('original')) {
-                        parsed.forEach(function(item) {
-                            if (item.active === undefined) item.active = true;
-                            if (!item.description) item.description = '';
-                            if (!item.image) item.image = '';
-                        });
-                        return parsed;
-                    }
-                } catch(e) {}
-            }
-            var defaults = JSON.parse(JSON.stringify(DEFAULT_ITEMS));
-            defaults.forEach(function(item) {
-                item.active = true;
-                item.description = '';
-                item.image = '';
-            });
-            return defaults;
-        }
+         function getItems() {
+             var stored = localStorage.getItem('hb_prices');
+             if (stored) {
+                 try {
+                     var parsed = JSON.parse(stored);
+                     if (parsed.length && parsed[0].hasOwnProperty('original')) {
+                         parsed.forEach(function(item) {
+                             if (item.active === undefined) item.active = true;
+                             if (!item.description) item.description = '';
+                             if (!item.image) item.image = '';
+                         });
+                         return parsed;
+                     }
+                 } catch(e) {}
+             }
+             return [];
+         }
 
         function calcFinal(original, discount) {
             var o = parseBR(original);
@@ -1190,12 +1185,13 @@
 
          function renderPrices() {
              var items = getItems();
-             if (!items || items.length === 0) {
-                 items = JSON.parse(JSON.stringify(DEFAULT_ITEMS));
-             }
              var tbody = document.getElementById('priceBody');
              if (!tbody) return;
              tbody.innerHTML = '';
+             if (!items || items.length === 0) {
+                 tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#888;padding:20px;">Carregando cardápio do Firestore...</td></tr>';
+                 return;
+             }
              var lastSection = '';
              var dragSrc = null;
              items.forEach(function(item, i) {
