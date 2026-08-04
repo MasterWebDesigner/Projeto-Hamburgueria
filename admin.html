@@ -1113,12 +1113,17 @@
         }
 
         function renderPrices() {
-            var items = getItems();
-            var tbody = document.getElementById('priceBody');
-            tbody.innerHTML = '';
-            var lastSection = '';
-            var dragSrc = null;
-            items.forEach(function(item, i) {
+            try {
+                var items = getItems();
+                if (!items || items.length === 0) {
+                    items = JSON.parse(JSON.stringify(DEFAULT_ITEMS));
+                }
+                var tbody = document.getElementById('priceBody');
+                if (!tbody) return;
+                tbody.innerHTML = '';
+                var lastSection = '';
+                var dragSrc = null;
+                items.forEach(function(item, i) {
                 if (item.section && item.section !== lastSection) {
                     lastSection = item.section;
                     var tr = document.createElement('tr');
@@ -1197,13 +1202,14 @@
                 showToast('"' + items[idx].name + '" não pode ser ativado: faltam matérias-primas no estoque');
                 return;
             }
-            items[idx].active = !(items[idx].active !== false);
-            firebaseSaveItems(items);
-            renderPrices();
-            showToast(items[idx].name + (items[idx].active ? ' ativado' : ' pausado'));
-        }
+             items[idx].active = !(items[idx].active !== false);
+             firebaseSaveItems(items);
+             renderPrices();
+             showToast(items[idx].name + (items[idx].active ? ' ativado' : ' pausado'));
+         } catch(e) { console.error('renderPrices error:', e); }
+     }
 
-        /* ─── New / Edit Product Modal ─── */
+     /* ─── New / Edit Product Modal ─── */
         function openNewProductModal() {
             editingIndex = -1;
             populateSectionSelect();
