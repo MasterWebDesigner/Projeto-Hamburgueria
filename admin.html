@@ -1112,88 +1112,69 @@
             return fmtBR(Math.round(v - 0.90) + 0.90);
         }
 
-        function renderPrices() {
-            try {
-                var items = getItems();
-                if (!items || items.length === 0) {
-                    items = JSON.parse(JSON.stringify(DEFAULT_ITEMS));
-                }
-                var tbody = document.getElementById('priceBody');
-                if (!tbody) return;
-                tbody.innerHTML = '';
-                var lastSection = '';
-                var dragSrc = null;
-                items.forEach(function(item, i) {
-                if (item.section && item.section !== lastSection) {
-                    lastSection = item.section;
-                    var tr = document.createElement('tr');
-                    tr.innerHTML = '<td class="section-row" colspan="8">' + item.section + '</td>';
-                    tbody.appendChild(tr);
-                }
-                var active = item.active !== false;
-                var comp = item.composition && item.composition.length > 0 ? item.composition.length + ' item(ns)' : '⛓️';
-                var missing = item.composition && item.composition.length > 0 ? getItemMissingStock(item) : [];
-                var effActive = active && missing.length === 0;
-                var nameHtml = item.name;
-                if (missing.length > 0) {
-                    nameHtml += ' <span style="background:rgba(230,57,70,0.15);color:#e63946;font-size:0.62rem;font-weight:800;padding:2px 8px;border-radius:4px;margin-left:6px;white-space:nowrap;" title="Sem estoque: ' + missing.join(', ').replace(/"/g, '&quot;') + '">⚠️ Sem estoque</span>';
-                }
-                var tr = document.createElement('tr');
-                tr.innerHTML = '<td style="cursor:grab;color:#555;font-size:1rem;">≡</td>' +
-                    '<td class="item-name" style="' + (effActive ? '' : 'opacity:0.4;') + '">' + nameHtml + '</td>' +
-                    '<td><input class="price-input orig-input" type="text" data-index="' + i + '" value="' + item.original + '"></td>' +
-                    '<td><input class="price-input discount-input" type="number" data-index="' + i + '" value="' + item.discount + '" min="0" max="100"></td>' +
-                    '<td><span class="final-price" data-index="' + i + '">R$ ' + calcFinal(item.original, item.discount) + '</span></td>' +
-                    '<td><button class="btn-coupon toggle-active ' + (effActive ? 'btn-green' : 'btn-gray') + '" data-index="' + i + '" onclick="toggleActive(' + i + ')">' + (effActive ? '🟢 Ativo' : '🔴 Pausado') + '</button></td>' +
-                    '<td><button class="btn-coupon btn-dark-gold" onclick="openComposition(' + i + ')" title="Composição">' + comp + '</button></td>' +
-                    '<td><button class="btn-coupon btn-gold" onclick="openEditProductModal(' + i + ')" title="Editar">✏️</button></td>';
-                tr.draggable = true;
-                tr.setAttribute('data-index', i);
-                tr.addEventListener('dragstart', function(e) { dragSrc = parseInt(this.getAttribute('data-index')); this.style.opacity = '0.4'; });
-                tr.addEventListener('dragend', function(e) { this.style.opacity = '1'; dragSrc = null; });
-                tr.addEventListener('dragover', function(e) { e.preventDefault(); });
-                tr.addEventListener('drop', function(e) {
-                    e.preventDefault();
-                    if (dragSrc === null) return;
-                    var to = parseInt(this.getAttribute('data-index'));
-                    if (dragSrc === to) return;
-                    var arr = getItems();
-                    var moved = arr.splice(dragSrc, 1)[0];
-                    var insertAt = to;
-                    if (to > dragSrc) insertAt--;
-                    arr.splice(insertAt, 0, moved);
-                    firebaseSaveItems(arr);
-                    renderPrices();
-                });
-                tbody.appendChild(tr);
-            });
-            document.querySelectorAll('.orig-input, .discount-input').forEach(function(inp) {
-                inp.addEventListener('input', function() {
-                    var idx = parseInt(this.getAttribute('data-index'));
-                    var orig = document.querySelector('.orig-input[data-index="' + idx + '"]').value.trim();
-                    var disc = parseInt(document.querySelector('.discount-input[data-index="' + idx + '"]').value) || 0;
-                    var finalEl = document.querySelector('.final-price[data-index="' + idx + '"]');
-                    finalEl.textContent = disc > 0 ? 'R$ ' + calcFinal(orig, disc) : 'R$ ' + orig;
-                });
-            });
-        }
-
-        function saveAllPrices() {
-            var items = getItems();
-            document.querySelectorAll('.orig-input').forEach(function(inp) {
-                var idx = parseInt(inp.getAttribute('data-index'));
-                items[idx].original = inp.value.trim().replace('R$ ', '');
-            });
-            document.querySelectorAll('.discount-input').forEach(function(inp) {
-                var idx = parseInt(inp.getAttribute('data-index'));
-                items[idx].discount = parseInt(inp.value) || 0;
-            });
-            items.forEach(function(item) {
-                item.price = item.discount > 0 ? calcFinal(item.original, item.discount) : item.original;
-            });
-            firebaseSaveItems(items);
-             showToast('Preços salvos com sucesso!');
-         } catch(e) { console.error('renderPrices error:', e); }
+         function renderPrices() {
+             var items = getItems();
+             if (!items || items.length === 0) {
+                 items = JSON.parse(JSON.stringify(DEFAULT_ITEMS));
+             }
+             var tbody = document.getElementById('priceBody');
+             if (!tbody) return;
+             tbody.innerHTML = '';
+             var lastSection = '';
+             var dragSrc = null;
+             items.forEach(function(item, i) {
+             if (item.section && item.section !== lastSection) {
+                 lastSection = item.section;
+                 var tr = document.createElement('tr');
+                 tr.innerHTML = '<td class="section-row" colspan="8">' + item.section + '</td>';
+                 tbody.appendChild(tr);
+             }
+             var active = item.active !== false;
+             var comp = item.composition && item.composition.length > 0 ? item.composition.length + ' item(ns)' : '⛓️';
+             var missing = item.composition && item.composition.length > 0 ? getItemMissingStock(item) : [];
+             var effActive = active && missing.length === 0;
+             var nameHtml = item.name;
+             if (missing.length > 0) {
+                 nameHtml += ' <span style="background:rgba(230,57,70,0.15);color:#e63946;font-size:0.62rem;font-weight:800;padding:2px 8px;border-radius:4px;margin-left:6px;white-space:nowrap;" title="Sem estoque: ' + missing.join(', ').replace(/"/g, '&quot;') + '">⚠️ Sem estoque</span>';
+             }
+             var tr = document.createElement('tr');
+             tr.innerHTML = '<td style="cursor:grab;color:#555;font-size:1rem;">≡</td>' +
+                 '<td class="item-name" style="' + (effActive ? '' : 'opacity:0.4;') + '">' + nameHtml + '</td>' +
+                 '<td><input class="price-input orig-input" type="text" data-index="' + i + '" value="' + item.original + '"></td>' +
+                 '<td><input class="price-input discount-input" type="number" data-index="' + i + '" value="' + item.discount + '" min="0" max="100"></td>' +
+                 '<td><span class="final-price" data-index="' + i + '">R$ ' + calcFinal(item.original, item.discount) + '</span></td>' +
+                 '<td><button class="btn-coupon toggle-active ' + (effActive ? 'btn-green' : 'btn-gray') + '" data-index="' + i + '" onclick="toggleActive(' + i + ')">' + (effActive ? '🟢 Ativo' : '🔴 Pausado') + '</button></td>' +
+                 '<td><button class="btn-coupon btn-dark-gold" onclick="openComposition(' + i + ')" title="Composição">' + comp + '</button></td>' +
+                 '<td><button class="btn-coupon btn-gold" onclick="openEditProductModal(' + i + ')" title="Editar">✏️</button></td>';
+             tr.draggable = true;
+             tr.setAttribute('data-index', i);
+             tr.addEventListener('dragstart', function(e) { dragSrc = parseInt(this.getAttribute('data-index')); this.style.opacity = '0.4'; });
+             tr.addEventListener('dragend', function(e) { this.style.opacity = '1'; dragSrc = null; });
+             tr.addEventListener('dragover', function(e) { e.preventDefault(); });
+             tr.addEventListener('drop', function(e) {
+                 e.preventDefault();
+                 if (dragSrc === null) return;
+                 var to = parseInt(this.getAttribute('data-index'));
+                 if (dragSrc === to) return;
+                 var arr = getItems();
+                 var moved = arr.splice(dragSrc, 1)[0];
+                 var insertAt = to;
+                 if (to > dragSrc) insertAt--;
+                 arr.splice(insertAt, 0, moved);
+                 firebaseSaveItems(arr);
+                 renderPrices();
+             });
+             tbody.appendChild(tr);
+         });
+         document.querySelectorAll('.orig-input, .discount-input').forEach(function(inp) {
+             inp.addEventListener('input', function() {
+                 var idx = parseInt(this.getAttribute('data-index'));
+                 var orig = document.querySelector('.orig-input[data-index="' + idx + '"]').value.trim();
+                 var disc = parseInt(document.querySelector('.discount-input[data-index="' + idx + '"]').value) || 0;
+                 var finalEl = document.querySelector('.final-price[data-index="' + idx + '"]');
+                 finalEl.textContent = disc > 0 ? 'R$ ' + calcFinal(orig, disc) : 'R$ ' + orig;
+             });
+         });
      }
 
      function toggleActive(idx) {
