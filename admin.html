@@ -841,11 +841,11 @@
 
          async function firebaseSaveItems(items) {
              try {
-                 localStorage.setItem('hb_prices', JSON.stringify(items));
                  const ref = db.collection(ITEMS_COLLECTION).doc(getUserPrefix()).collection('items');
                  for (const item of items) {
                      await ref.doc(item.id || item.name).set(item);
                  }
+                 localStorage.setItem('hb_prices', JSON.stringify(items));
                  showToast('Cardápio salvo no Firestore');
              } catch (e) { console.error('Firebase saveItems error:', e); showToast('Erro ao salvar cardápio'); }
          }
@@ -1016,15 +1016,15 @@
              }
          }
 
-         // ── Realtime Sync: Firestore → localStorage ──
-        function setupFirestoreSync() {
-            // Sync items
-            db.collection(ITEMS_COLLECTION).doc(getUserPrefix()).collection('items').onSnapshot(function(snapshot) {
-                var items = [];
-                snapshot.forEach(function(doc) { items.push({ id: doc.id, ...doc.data() }); });
-                localStorage.setItem('hb_prices', JSON.stringify(items));
-                if (typeof renderPrices === 'function') renderPrices();
-            });
+         // ── Realtime Sync: Firestore → UI ──
+         function setupFirestoreSync() {
+             // Sync items
+             db.collection(ITEMS_COLLECTION).doc(getUserPrefix()).collection('items').onSnapshot(function(snapshot) {
+                 var items = [];
+                 snapshot.forEach(function(doc) { items.push({ id: doc.id, ...doc.data() }); });
+                 localStorage.setItem('hb_prices', JSON.stringify(items));
+                 if (typeof renderPrices === 'function') renderPrices();
+             });
 
             // Sync stock
             db.collection(STOCK_COLLECTION).doc(getUserPrefix()).collection('stock').onSnapshot(function(snapshot) {
@@ -1333,9 +1333,8 @@
                 items[editingIndex].price = price;
                 items[editingIndex].active = active;
                 items[editingIndex].description = description;
-                items[editingIndex].image = image;
+                 items[editingIndex].image = image;
                  items[editingIndex].imageV = Date.now();
-                 localStorage.setItem('hb_prices', JSON.stringify(items));
                  await firebaseSaveItems(items);
                 renderPrices();
                 closeNewProductModal();
@@ -1383,7 +1382,6 @@
                     items.push(newItem);
                 }
                  await firebaseSaveItems(items);
-                 localStorage.setItem('hb_prices', JSON.stringify(items));
                  renderPrices();
                 closeNewProductModal();
                 showToast('"' + name + '" criado com sucesso!');
