@@ -3255,9 +3255,10 @@
             if (tab) tab.classList.remove('blink');
         }
 
-        // ── Firebase Init ──
-        migrateLocalStorageToFirebase();
-        setupFirestoreSync();
+         // ── Firebase Init ──
+         migrateLocalStorageToFirebase();
+         setupFirestoreSync();
+         seedDefaultMenu();
 
         // ── Init ──
         updateStatusUI();
