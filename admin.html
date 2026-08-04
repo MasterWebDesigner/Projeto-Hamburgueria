@@ -777,15 +777,23 @@
                                 <option value="0">🔴 Inativo (Pausado)</option>
                             </select>
                         </div>
-                        <div class="modal-actions">
-                            <button class="btn btn-primary" id="npSaveBtn" onclick="saveNewProduct()">💾 Salvar Produto</button>
-                            <button class="btn btn-cancel" onclick="closeNewProductModal()">Cancelar</button>
-                        </div>
-                    </div>
-                </div>
+                         <div class="modal-actions">
+                             <button class="btn btn-primary" id="npSaveBtn" onclick="saveNewProduct()">💾 Salvar Produto</button>
+                             <button class="btn btn-cancel" onclick="closeNewProductModal()">Cancelar</button>
+                         </div>
+                     </div>
+                 </div>
 
-            </div>
-        </main>
+                 <!-- Sync Card -->
+                 <div class="card">
+                     <h3>🔄 Sincronizar LocalStorage com Firestore</h3>
+                     <p style="color:#888;font-size:0.8rem;margin-bottom:12px;">Clique para enviar todos os dados do localStorage para o Firestore. Isso sobrescreve os dados existentes no Firestore.</p>
+                     <button class="btn-action btn-gold" onclick="syncLocalStorageToFirestore()">Sincronizar Agora</button>
+                     <div id="syncStatus" style="margin-top:8px;font-size:0.85rem;"></div>
+                 </div>
+
+             </div>
+         </main>
     </div>
 
     <div class="toast" id="toast"></div>
@@ -3057,14 +3065,6 @@
          function loadDeliveryFee() {
              document.getElementById('deliveryFee').value = getDeliveryFee();
          }
-
-         <!-- ── Sync Button ── -->
-         <div class="card" style="margin-top:16px;">
-             <h3>🔄 Sincronizar LocalStorage com Firestore</h3>
-             <p style="color:#888;font-size:0.8rem;margin-bottom:12px;">Clique para enviar todos os dados do localStorage para o Firestore. Isso sobrescreve os dados existentes no Firestore.</p>
-             <button class="btn-action btn-gold" onclick="syncLocalStorageToFirestore()">Sincronizar Agora</button>
-             <div id="syncStatus" style="margin-top:8px;font-size:0.85rem;"></div>
-         </div>
 
          /* ─── Backup / Restore ─── */
         var BACKUP_KEYS = ['hb_prices', 'hb_orders', 'hb_loyalty', 'hb_loyalty_config', 'hb_stock', 'hb_status', 'hb_hours', 'hb_whatsapp', 'hb_delivery_estimate', 'hb_delivery_fee'];
