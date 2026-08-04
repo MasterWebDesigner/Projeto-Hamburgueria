@@ -848,13 +848,32 @@
 
          async function firebaseSaveItems(items, skipToast) {
              try {
-                 var batch = db.batch();
                  var ref = db.collection(ITEMS_COLLECTION).doc(getUserPrefix()).collection('items');
-                 for (const item of items) {
-                     var docRef = ref.doc(item.id || item.name);
-                     batch.set(docRef, item);
+                 var snapshot = await ref.get();
+                 var keepIds = {};
+                 for (var i = 0; i < items.length; i++) {
+                     keepIds[items[i].id || items[i].name] = true;
                  }
-                 await batch.commit();
+
+                 var ops = [];
+                 snapshot.forEach(function(doc) {
+                     if (!keepIds[doc.id]) ops.push({ type: 'delete', ref: doc.ref });
+                 });
+                 for (var j = 0; j < items.length; j++) {
+                     var item = items[j];
+                     ops.push({ type: 'set', ref: ref.doc(item.id || item.name), data: item });
+                 }
+
+                 for (var start = 0; start < ops.length; start += 500) {
+                     var batch = db.batch();
+                     var chunk = ops.slice(start, start + 500);
+                     for (var k = 0; k < chunk.length; k++) {
+                         if (chunk[k].type === 'delete') batch.delete(chunk[k].ref);
+                         else batch.set(chunk[k].ref, chunk[k].data);
+                     }
+                     await batch.commit();
+                 }
+
                  localStorage.setItem('hb_prices', JSON.stringify(items));
                  if (!skipToast) showToast('Cardápio salvo no Firestore');
              } catch (e) { console.error('Firebase saveItems error:', e); showToast('Erro ao salvar cardápio'); }
@@ -896,10 +915,10 @@
 
         async function firebaseSaveOrder(order) {
             try {
-                order.timestamp = firebase.firestore.FieldValue.serverTimestamp();
-                await db.collection(ORDERS_COLLECTION).doc(getUserPrefix()).collection('orders').add(order);
-                showToast('Pedido salvo no Firestore');
-            } catch (e) { console.error('Firebase saveOrder error:', e); showToast('Erro ao salvar pedido'); }
+                var orderData = Object.assign({}, order);
+                orderData.timestamp = firebase.firestore.FieldValue.serverTimestamp();
+                await db.collection(ORDERS_COLLECTION).doc(getUserPrefix()).collection('orders').doc(order.id).set(orderData);
+            } catch (e) { console.error('Firebase saveOrder error:', e); }
         }
 
         // ── Firestore CRUD: Loyalty ──
@@ -914,12 +933,21 @@
 
         async function firebaseSaveLoyalty(loyalty) {
             try {
-                const ref = db.collection(LOYALTY_COLLECTION).doc(getUserPrefix()).collection('loyalty');
-                for (const item of loyalty) {
-                    await ref.doc(item.id || item.name).set(item);
+                var ref = db.collection(LOYALTY_COLLECTION).doc(getUserPrefix()).collection('loyalty');
+                if (loyalty && loyalty.customers) {
+                    // Object format { customers: { key: {...} } }
+                    for (var key in loyalty.customers) {
+                        var c = loyalty.customers[key];
+                        await ref.doc(key).set({ id: key, name: c.name, phone: c.phone || '', totalSpent: c.totalSpent || 0, extraPoints: c.extraPoints || 0, coupons: c.coupons || [] });
+                    }
+                } else if (Array.isArray(loyalty)) {
+                    // Array format fallback
+                    for (var i = 0; i < loyalty.length; i++) {
+                        var item = loyalty[i];
+                        await ref.doc(item.id || item.name).set(item);
+                    }
                 }
-                showToast('Fidelidade salva no Firestore');
-            } catch (e) { console.error('Firebase saveLoyalty error:', e); showToast('Erro ao salvar fidelidade'); }
+            } catch (e) { console.error('Firebase saveLoyalty error:', e); }
         }
 
         // ── Firestore CRUD: Config ──
@@ -1007,7 +1035,9 @@
          }
 
          // ── Seed: Carregar cardapio padrao do Firestore ──
+         // DISABLED for automatic use — only resetCardapio() may repopulate the menu.
          async function seedDefaultMenu(forceReset) {
+             if (forceReset !== true) return false;
              try {
                  var defaultItems = null;
 
@@ -1024,12 +1054,6 @@
                  // Fallback to hardcoded DEFAULT_ITEMS
                  if (!defaultItems) {
                      defaultItems = JSON.parse(JSON.stringify(DEFAULT_ITEMS));
-                 }
-
-                 // If not force reset, check if collection already has items
-                 if (!forceReset) {
-                     const snapshot = await db.collection(ITEMS_COLLECTION).doc(getUserPrefix()).collection('items').get();
-                     if (snapshot.size > 0) return false;
                  }
 
                  // Clear existing items first
@@ -1115,12 +1139,20 @@
                 if (typeof updateOrderBadge === 'function') updateOrderBadge();
             });
 
-            // Sync loyalty
+            // Sync loyalty — Firestore stores as array of docs, localStorage uses { customers: {} }
             db.collection(LOYALTY_COLLECTION).doc(getUserPrefix()).collection('loyalty').onSnapshot(function(snapshot) {
-                var loyalty = [];
-                snapshot.forEach(function(doc) { loyalty.push({ id: doc.id, ...doc.data() }); });
-                localStorage.setItem('hb_loyalty', JSON.stringify(loyalty));
+                var customers = {};
+                snapshot.forEach(function(doc) {
+                    var d = doc.data();
+                    var key = d.id || doc.id;
+                    if (d.name) {
+                        customers[key] = { name: d.name, phone: d.phone || '', totalSpent: d.totalSpent || 0, extraPoints: d.extraPoints || 0, coupons: d.coupons || [] };
+                    }
+                });
+                var loyaltyData = { customers: customers };
+                localStorage.setItem('hb_loyalty', JSON.stringify(loyaltyData));
                 if (typeof renderLoyalty === 'function') renderLoyalty();
+                if (typeof updateCouponBadge === 'function') updateCouponBadge();
             });
 
             // Sync config
@@ -1145,31 +1177,10 @@
             firebaseSaveStock(stock);
         }
 
-        function saveOrders(orders) {
-            localStorage.setItem('hb_orders', JSON.stringify(orders));
-            for (var i = 0; i < orders.length; i++) {
-                firebaseSaveOrder(orders[i]);
-            }
-        }
-
         function saveLoyalty(data) {
             localStorage.setItem('hb_loyalty', JSON.stringify(data));
             firebaseSaveLoyalty(data);
-        }
-
-        function saveWhatsapp(num) {
-            localStorage.setItem('hb_whatsapp', num);
-            firebaseSaveConfig({ whatsapp: num });
-        }
-
-        function saveDeliveryFee(fee) {
-            localStorage.setItem('hb_delivery_fee', String(fee));
-            firebaseSaveConfig({ deliveryFee: fee });
-        }
-
-        function saveDeliveryEstimate(est) {
-            localStorage.setItem('hb_delivery_estimate', est);
-            firebaseSaveConfig({ deliveryEstimate: est });
+            updateCouponBadge();
         }
 
         var DEFAULT_ITEMS = [
@@ -1228,26 +1239,25 @@
 
          function getItems() {
              var stored = localStorage.getItem('hb_prices');
-             if (stored) {
+             if (stored !== null) {
                  try {
                      var parsed = JSON.parse(stored);
-                     if (parsed.length && parsed[0].hasOwnProperty('original')) {
-                         parsed.forEach(function(item) {
-                             if (item.active === undefined) item.active = true;
-                             if (!item.description) item.description = '';
-                             if (!item.image) item.image = '';
-                             if (!item.id) item.id = item.name;
-                         });
-                         return parsed;
+                     if (Array.isArray(parsed)) {
+                         if (parsed.length === 0) return [];
+                         if (parsed[0].hasOwnProperty('original')) {
+                             parsed.forEach(function(item) {
+                                 if (item.active === undefined) item.active = true;
+                                 if (!item.description) item.description = '';
+                                 if (!item.image) item.image = '';
+                                 if (!item.id) item.id = item.name;
+                             });
+                             return parsed;
+                         }
                      }
                  } catch(e) {}
+                 return [];
              }
-             // Fallback: use DEFAULT_ITEMS (which have proper IDs)
-             var defaults = JSON.parse(JSON.stringify(DEFAULT_ITEMS));
-             defaults.forEach(function(item) {
-                 item.active = true;
-             });
-             return defaults;
+             return [];
          }
 
         function calcFinal(original, discount) {
@@ -2090,11 +2100,6 @@
             saveStock(items);
         }
 
-        function saveLoyalty(data) {
-            localStorage.setItem('hb_loyalty', JSON.stringify(data));
-            updateCouponBadge();
-        }
-
         function updateCouponBadge() {
             var badge = document.getElementById('couponBadge');
             if (!badge) return;
@@ -2627,10 +2632,6 @@
                 list.forEach(function(s) { if (s.active === undefined) s.active = true; });
                 return list;
             } catch(e) { return []; }
-        }
-
-        function saveStock(data) {
-            localStorage.setItem('hb_stock', JSON.stringify(data));
         }
 
         /* ─── Stock Categories ─── */
@@ -3205,12 +3206,30 @@
             }
         }
 
+        async function syncBackupToFirestore(data) {
+            if (data.hb_prices) await firebaseSaveItems(data.hb_prices, true);
+            if (data.hb_stock) await firebaseSaveStock(data.hb_stock);
+            if (data.hb_loyalty) await firebaseSaveLoyalty(data.hb_loyalty);
+            if (data.hb_orders) {
+                for (var i = 0; i < data.hb_orders.length; i++) {
+                    await firebaseSaveOrder(data.hb_orders[i]);
+                }
+            }
+            if (data.hb_whatsapp || data.hb_delivery_fee !== undefined || data.hb_delivery_estimate) {
+                var cfg = {};
+                if (data.hb_whatsapp) cfg.whatsapp = data.hb_whatsapp;
+                if (data.hb_delivery_fee !== undefined) cfg.deliveryFee = data.hb_delivery_fee;
+                if (data.hb_delivery_estimate) cfg.deliveryEstimate = data.hb_delivery_estimate;
+                await firebaseSaveConfig(cfg);
+            }
+        }
+
         function importBackup(input) {
             var file = input.files && input.files[0];
             if (!file) return;
-            if (!confirm('Restaurar este backup?\n\nOs dados ATUAIS serão substituídos pelos dados do arquivo.')) { input.value = ''; return; }
+            if (!confirm('Restaurar este backup?\n\nOs dados ATUAIS serão substituídos pelos dados do arquivo.\n\nOs dados também serão enviados ao Firestore.')) { input.value = ''; return; }
             var reader = new FileReader();
-            reader.onload = function(ev) {
+            reader.onload = async function(ev) {
                 try {
                     var data = JSON.parse(ev.target.result);
                     var count = 0;
@@ -3220,9 +3239,11 @@
                             count++;
                         }
                     });
+                    showToast('Backup importado: ' + count + ' blocos. Enviando ao Firestore...');
+                    await syncBackupToFirestore(data);
                     input.value = '';
-                    showToast('Backup restaurado: ' + count + ' blocos de dados');
-                    setTimeout(function() { location.reload(); }, 800);
+                    showToast('Backup restaurado e sincronizado com Firestore!');
+                    setTimeout(function() { location.reload(); }, 1200);
                 } catch(e) {
                     input.value = '';
                     showToast('Arquivo de backup inválido: ' + e.message);
@@ -3253,7 +3274,7 @@
             } catch(e) { /* silent */ }
         }
 
-        function restoreAutoBackup() {
+        async function restoreAutoBackup() {
             var raw = localStorage.getItem('hb_auto_snapshots');
             if (!raw) { showToast('Nenhum snapshot automático encontrado'); return; }
             var snapshots = JSON.parse(raw);
@@ -3266,16 +3287,23 @@
             if (choice === null) return;
             var idx = parseInt(choice) - 1;
             if (isNaN(idx) || idx < 0 || idx >= snapshots.length) { showToast('Opção inválida'); return; }
-            var data = snapshots[idx].data;
-            var count = 0;
-            BACKUP_KEYS.forEach(function(k) {
-                if (data[k] !== undefined) {
-                    localStorage.setItem(k, (typeof data[k] === 'string') ? data[k] : JSON.stringify(data[k]));
-                    count++;
-                }
-            });
-            showToast('Snapshot restaurado: ' + count + ' blocos');
-            setTimeout(function() { location.reload(); }, 800);
+            if (!confirm('Restaurar snapshot de ' + snapshots[idx].at.replace('T', ' ').slice(0, 16) + '?\n\nOs dados ATUAIS serão substituídos.\n\nOs dados também serão enviados ao Firestore.')) return;
+            try {
+                var data = snapshots[idx].data;
+                var count = 0;
+                BACKUP_KEYS.forEach(function(k) {
+                    if (data[k] !== undefined) {
+                        localStorage.setItem(k, (typeof data[k] === 'string') ? data[k] : JSON.stringify(data[k]));
+                        count++;
+                    }
+                });
+                showToast('Snapshot restaurado: ' + count + ' blocos. Enviando ao Firestore...');
+                await syncBackupToFirestore(data);
+                showToast('Snapshot sincronizado com Firestore!');
+                setTimeout(function() { location.reload(); }, 1200);
+            } catch(e) {
+                showToast('Erro ao restaurar snapshot: ' + e.message);
+            }
         }
 
         function getWaitTime(orderTime) {
@@ -3343,7 +3371,7 @@
         }
 
          // ── Firebase Init ──
-         migrateLocalStorageToFirebase();
+         // migrateLocalStorageToFirebase(); // DISABLED: only use manual Sync button
          setupFirestoreSync();
 
         // ── Init ──

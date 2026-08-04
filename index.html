@@ -711,40 +711,9 @@
             setTimeout(function() { toast.classList.remove('show'); }, 3000);
         }
 
-         // ── Seed: Carregar cardapio padrao do Firestore ──
+         // ── Seed: DISABLED — public site must never auto-write default menu to Firestore ──
          async function seedDefaultMenu() {
-             try {
-                 const snapshot = await db.collection(ITEMS_COLLECTION).doc('admin').collection('items').get();
-                 if (snapshot.size > 0) return false;
-
-                 var defaultItems = null;
-                 try {
-                     const response = await fetch('default-menu.json');
-                     if (response.ok) {
-                         defaultItems = await response.json();
-                     }
-                 } catch (fetchErr) {
-                     console.warn('Fetch default-menu.json failed:', fetchErr);
-                 }
-
-                 if (!defaultItems) {
-                     console.warn('default-menu.json unavailable, skipping seed');
-                     return false;
-                 }
-
-                 const ref = db.collection(ITEMS_COLLECTION).doc('admin').collection('items');
-                 for (const item of defaultItems) {
-                     await ref.doc(item.id).set(item);
-                 }
-                 localStorage.setItem('hb_prices', JSON.stringify(defaultItems));
-                 if (typeof renderMenu === 'function') renderMenu();
-                 showToast('Cardapio padrao carregado do Firestore!');
-                 return true;
-             } catch (e) {
-                 console.error('Seed error:', e);
-                 showToast('Erro ao carregar cardapio padrao');
-                 return false;
-             }
+             return false;
          }
 
         // ── Migration: localStorage → Firestore ──
@@ -795,7 +764,7 @@
         // ── Initialize Firebase on page load ──
         window._waNum = '5511966378328';
         document.addEventListener('DOMContentLoaded', function() {
-            migrateLocalStorageToFirebase();
+            // migrateLocalStorageToFirebase(); // DISABLED: public site should not push localStorage to Firestore
             setupFirestoreSync();
             renderMenu();
         });
