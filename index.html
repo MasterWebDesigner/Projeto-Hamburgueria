@@ -353,45 +353,84 @@
                     renderMenuFallbackActive = false;
                     return;
                 }
-                 items.forEach(function(item) { if (item.active === undefined) item.active = true; });
-                 renderMenuItems(items);
-                 }
-
-             }
-
-             function setupDynamicModal() {
-                 var modal = document.getElementById('productModal');
-                if (!modal) return;
-                // Remove old listeners by replacing with new
-                document.querySelectorAll('#dynamicMenu .card').forEach(function(card) {
-                    card.addEventListener('click', function(e) {
-                        if (e.target.closest('.btn-sm')) return;
-                        if (e.target.closest('.btn-add-cart')) return;
-                        var img = this.querySelector('img');
-                        var title = this.querySelector('h3');
-                        var desc = this.querySelector('.card-body > p');
-                        var price = this.querySelector('.price');
-                        document.getElementById('modalImg').src = img ? img.src : '';
-                        document.getElementById('modalImg').alt = img ? img.alt : '';
-                        document.getElementById('modalTitle').textContent = title ? title.textContent : '';
-                        document.getElementById('modalDesc').textContent = desc ? desc.textContent : '';
-                        document.getElementById('modalPrice').textContent = price ? price.textContent : '';
-                        document.getElementById('modalBtn').href = 'https://wa.me/' + (window._waNum || '5511966378328') + '?text=Olá! Quero pedir o ' + encodeURIComponent(title ? title.textContent : '');
-                        modal.classList.add('open');
-                    });
-                });
-            }
+                items.forEach(function(item) { if (item.active === undefined) item.active = true; });
+                renderMenuItems(items);
+                setupDynamicModal();
+            }).catch(function(e) {
+                console.error('renderMenu Firestore error:', e);
+                if (!renderMenuFallbackActive) {
+                    renderMenuFallbackActive = true;
+                    renderMenuFallback();
+                    renderMenuFallbackActive = false;
+                }
             });
         }
-        }).catch(function(e) {
-            console.error('renderMenu Firestore error:', e);
-            if (!renderMenuFallbackActive) {
-                renderMenuFallbackActive = true;
-                renderMenuFallback();
-                renderMenuFallbackActive = false;
-            }
-        });
-    }
+
+        function setupDynamicModal() {
+            var modal = document.getElementById('productModal');
+            if (!modal) return;
+            document.querySelectorAll('#dynamicMenu .card').forEach(function(card) {
+                card.addEventListener('click', function(e) {
+                    if (e.target.closest('.btn-sm')) return;
+                    if (e.target.closest('.btn-add-cart')) return;
+                    var img = this.querySelector('img');
+                    var title = this.querySelector('h3');
+                    var desc = this.querySelector('.card-body > p');
+                    var price = this.querySelector('.price');
+                    document.getElementById('modalImg').src = img ? img.src : '';
+                    document.getElementById('modalImg').alt = img ? img.alt : '';
+                    document.getElementById('modalTitle').textContent = title ? title.textContent : '';
+                    document.getElementById('modalDesc').textContent = desc ? desc.textContent : '';
+                    document.getElementById('modalPrice').textContent = price ? price.textContent : '';
+                    document.getElementById('modalBtn').href = 'https://wa.me/' + (window._waNum || '5511966378328') + '?text=Olá! Quero pedir o ' + encodeURIComponent(title ? title.textContent : '');
+                    modal.classList.add('open');
+                });
+            });
+        }
+
+    var DEFAULT_ITEMS = [
+        { id: 'nava_kids', section: 'Lanches', name: 'Nava\'s Kids', original: '19,99', discount: 1, price: '19,90', active: true, description: 'Pão de brioche, carne de 100g, queijo mussarela e maionese verde da casa.', image: 'imagens/Lanche1.png', composition: [ { stockName: 'Pão de Brioche', qty: 1 }, { stockName: 'Carne Bovina 100g', qty: 1 }, { stockName: 'Queijo Mussarela', qty: 1 }, { stockName: 'Maionese Verde da Casa', qty: 1 } ] },
+        { id: 'nava_salada', section: '', name: 'Nava\'s Salada', original: '25,99', discount: 27, price: '18,90', active: true, description: 'Pão de brioche, carne de 100g, mussarela fatiada, alface americana e maionese verde da casa.', image: 'imagens/Lanche2.png', composition: [ { stockName: 'Pão de Brioche', qty: 1 }, { stockName: 'Carne Bovina 100g', qty: 1 }, { stockName: 'Queijo Mussarela', qty: 1 }, { stockName: 'Alface', qty: 1 }, { stockName: 'Maionese Verde da Casa', qty: 1 } ] },
+        { id: 'nava_onion', section: '', name: 'Nava\'s Onion', original: '26,99', discount: 19, price: '21,90', active: true, description: 'Pão de brioche, carne de 100g, queijo mussarela, cebola empanada (onion rings), barbecue e maionese verde da casa.', image: 'imagens/LancheOnion.jpg', composition: [ { stockName: 'Pão de Brioche', qty: 1 }, { stockName: 'Carne Bovina 100g', qty: 1 }, { stockName: 'Queijo Mussarela', qty: 1 }, { stockName: 'Cebola Empanada', qty: 1 }, { stockName: 'Barbecue', qty: 1 } ] },
+        { id: 'nava_cheddar', section: '', name: 'Nava\'s Cheddar', original: '25,99', discount: 15, price: '21,90', active: true, description: 'Pão de brioche, carne de 100g, cheddar cremoso, bacon picado e maionese verde da casa.', image: 'imagens/Lanche4.png', composition: [ { stockName: 'Pão de Brioche', qty: 1 }, { stockName: 'Carne Bovina 100g', qty: 1 }, { stockName: 'Queijo Cheddar', qty: 1 }, { stockName: 'Bacon', qty: 1 }, { stockName: 'Maionese Verde da Casa', qty: 1 } ] },
+        { id: 'nava_bacon', section: '', name: 'Nava\'s Bacon', original: '25,90', discount: 15, price: '21,90', active: true, description: 'Pão de brioche, carne de 100g, mussarela fatiada, bacon fatiado, cebola caramelizada, barbecue e maionese verde da casa.', image: 'imagens/Lanche5.png', composition: [ { stockName: 'Pão de Brioche', qty: 1 }, { stockName: 'Carne Bovina 100g', qty: 1 }, { stockName: 'Queijo Mussarela', qty: 1 }, { stockName: 'Bacon', qty: 1 }, { stockName: 'Cebola Caramelizada', qty: 1 }, { stockName: 'Barbecue', qty: 1 }, { stockName: 'Maionese Verde da Casa', qty: 1 } ] },
+        { id: 'nava_duplo', section: '', name: 'Nava\'s Duplo Cheddar', original: '30,99', discount: 6, price: '28,90', active: true, description: 'Pão de brioche, duas carnes de 100g, cheddar cremoso, bacon picado e maionese verde da casa.', image: 'imagens/Lanche6.png', composition: [ { stockName: 'Pão de Brioche', qty: 1 }, { stockName: 'Carne Bovina 100g', qty: 2 }, { stockName: 'Queijo Cheddar', qty: 1 }, { stockName: 'Bacon', qty: 1 }, { stockName: 'Maionese Verde da Casa', qty: 1 } ] },
+        { id: 'murphs_barbecue', section: 'Lanche Especial', name: 'Murph\'s Barbecue', original: '46,90', discount: 0, price: '46,90', active: true, description: '', image: '' },
+        { id: 'murphs_supreme', section: '', name: 'Murph\'s Supreme', original: '44,90', discount: 0, price: '44,90', active: true, description: '', image: '' },
+        { id: 'murphs_gorgonzola', section: '', name: 'Murph\'s Gorgonzola', original: '48,90', discount: 0, price: '48,90', active: true, description: '', image: '' },
+        { id: 'murphs_texas', section: '', name: 'Murph\'s Texas', original: '49,90', discount: 0, price: '49,90', active: true, description: '', image: '' },
+        { id: 'murphs_costela', section: '', name: 'Murph\'s Costela', original: '52,90', discount: 0, price: '52,90', active: true, description: '', image: '' },
+        { id: 'murphs_file', section: '', name: 'Murph\'s Filé Mignon', original: '56,90', discount: 0, price: '56,90', active: true, description: '', image: '' },
+        { id: 'murphs_chicken', section: '', name: 'Murph\'s Frango Crispy', original: '39,90', discount: 0, price: '39,90', active: true, description: '', image: '' },
+        { id: 'murphs_veggie', section: '', name: 'Murph\'s Veggie', original: '36,90', discount: 0, price: '36,90', active: true, description: '', image: '' },
+        { id: 'murphs_duplo', section: '', name: 'Murph\'s Duplo', original: '54,90', discount: 0, price: '54,90', active: true, description: '', image: '' },
+        { id: 'batata_frita', section: '🍟 Porções', name: 'Batata Frita', original: '18,90', discount: 0, price: '18,90', active: true, description: '', image: '' },
+        { id: 'batata_cheddar', section: '', name: 'Batata Cheddar Bacon', original: '26,90', discount: 0, price: '26,90', active: true, description: '', image: '' },
+        { id: 'onion_rings', section: '', name: 'Onion Rings', original: '19,90', discount: 0, price: '19,90', active: true, description: '', image: '' },
+        { id: 'iscas_frango', section: '', name: 'Iscas de Frango', original: '19,90', discount: 0, price: '19,90', active: true, description: '', image: '' },
+        { id: 'calabresa', section: '', name: 'Calabresa Acebolada', original: '19,90', discount: 0, price: '19,90', active: true, description: '', image: '' },
+        { id: 'polenta', section: '', name: 'Polenta Frita', original: '19,90', discount: 0, price: '19,90', active: true, description: '', image: '' },
+        { id: 'mandioca', section: '', name: 'Mandioca Frita', original: '19,90', discount: 0, price: '19,90', active: true, description: '', image: '' },
+        { id: 'mix_fritas', section: '', name: 'Mix de Fritas', original: '29,90', discount: 0, price: '29,90', active: true, description: '', image: '' },
+        { id: 'chocolate', section: '🥤 Milk Shakes', name: 'Chocolate', original: '14,90', discount: 0, price: '14,90', active: true, description: '', image: '' },
+        { id: 'morango', section: '', name: 'Morango', original: '14,90', discount: 0, price: '14,90', active: true, description: '', image: '' },
+        { id: 'baunilha', section: '', name: 'Baunilha', original: '14,90', discount: 0, price: '14,90', active: true, description: '', image: '' },
+        { id: 'ovomaltine', section: '', name: 'Ovomaltine', original: '14,90', discount: 0, price: '14,90', active: true, description: '', image: '' },
+        { id: 'ninho', section: '', name: 'Ninho com Nutella', original: '14,90', discount: 0, price: '14,90', active: true, description: '', image: '' },
+        { id: 'oreo', section: '', name: 'Oreo', original: '14,90', discount: 0, price: '14,90', active: true, description: '', image: '' },
+        { id: 'doce_leite', section: '', name: 'Doce de Leite', original: '14,90', discount: 0, price: '14,90', active: true, description: '', image: '' },
+        { id: 'acai', section: '🧃 Sucos', name: 'Açaí', original: '12,90', discount: 0, price: '12,90', active: true, description: '', image: '' },
+        { id: 'limao', section: '', name: 'Limão', original: '12,90', discount: 0, price: '12,90', active: true, description: '', image: '' },
+        { id: 'maracuja', section: '', name: 'Maracujá', original: '12,90', discount: 0, price: '12,90', active: true, description: '', image: '' },
+        { id: 'morango_suco', section: '', name: 'Morango', original: '12,90', discount: 0, price: '12,90', active: true, description: '', image: '' },
+        { id: 'abacaxi', section: '', name: 'Abacaxi', original: '12,90', discount: 0, price: '12,90', active: true, description: '', image: '' },
+        { id: 'uva', section: '', name: 'Uva', original: '12,90', discount: 0, price: '12,90', active: true, description: '', image: '' },
+        { id: 'coca', section: '🥤 Refrigerantes', name: 'Coca-Cola Lata', original: '5,90', discount: 0, price: '5,90', active: true, description: '', image: '' },
+        { id: 'guarana', section: '', name: 'Guaraná Lata', original: '5,90', discount: 0, price: '5,90', active: true, description: '', image: '' },
+        { id: 'fanta', section: '', name: 'Fanta Laranja Lata', original: '5,90', discount: 0, price: '5,90', active: true, description: '', image: '' },
+        { id: 'sprite', section: '', name: 'Sprite Lata', original: '5,90', discount: 0, price: '5,90', active: true, description: '', image: '' },
+        { id: 'agua', section: '', name: 'Água Mineral', original: '3,90', discount: 0, price: '3,90', active: true, description: '', image: '' }
+    ];
 
     function renderMenuFallback() {
         var items = JSON.parse(JSON.stringify(DEFAULT_ITEMS));
@@ -729,14 +768,16 @@
             if (migrated) showToast('Dados migrados do localStorage para o Firestore!');
         }
 
-        // ── Realtime Listener: Firestore → localStorage (for frontend) ──
-        function setupFirestoreSync() {
-            db.collection(ITEMS_COLLECTION).doc('admin').collection('items').onSnapshot(function(snapshot) {
-                var items = [];
-                snapshot.forEach(function(doc) { items.push({ id: doc.id, ...doc.data() }); });
-                localStorage.setItem('hb_prices', JSON.stringify(items));
-                if (typeof renderMenu === 'function') renderMenu();
-            });
+         // ── Realtime Listener: Firestore → UI (for frontend) ──
+         function setupFirestoreSync() {
+             db.collection(ITEMS_COLLECTION).doc('admin').collection('items').onSnapshot(function(snapshot) {
+                 var items = [];
+                 snapshot.forEach(function(doc) { items.push({ id: doc.id, ...doc.data() }); });
+                 localStorage.setItem('hb_prices', JSON.stringify(items));
+                 items.forEach(function(item) { if (item.active === undefined) item.active = true; });
+                 if (typeof renderMenuItems === 'function') renderMenuItems(items);
+                 if (typeof setupDynamicModal === 'function') setupDynamicModal();
+             });
 
             db.collection(CONFIG_COLLECTION).doc('admin').onSnapshot(function(doc) {
                 if (doc.exists) {
