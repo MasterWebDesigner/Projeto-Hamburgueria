@@ -672,6 +672,29 @@
             setTimeout(function() { toast.classList.remove('show'); }, 3000);
         }
 
+        // ── Seed: Carregar cardapio padrao do Firestore ──
+        async function seedDefaultMenu() {
+            try {
+                const snapshot = await db.collection(ITEMS_COLLECTION).doc('admin').collection('items').get();
+                if (snapshot.size > 0) return false;
+
+                const response = await fetch('default-menu.json');
+                if (!response.ok) throw new Error('Nao foi possivel carregar default-menu.json');
+                const defaultItems = await response.json();
+
+                const ref = db.collection(ITEMS_COLLECTION).doc('admin').collection('items');
+                for (const item of defaultItems) {
+                    await ref.doc(item.id).set(item);
+                }
+                showToast('Cardapio padrao carregado do Firestore!');
+                return true;
+            } catch (e) {
+                console.error('Seed error:', e);
+                showToast('Erro ao carregar cardapio padrao');
+                return false;
+            }
+        }
+
         // ── Migration: localStorage → Firestore ──
         async function migrateLocalStorageToFirebase() {
             const keys = ['hb_prices', 'hb_stock', 'hb_orders', 'hb_loyalty', 'hb_whatsapp', 'hb_delivery_fee', 'hb_delivery_estimate'];
@@ -720,6 +743,7 @@
         document.addEventListener('DOMContentLoaded', function() {
             migrateLocalStorageToFirebase();
             setupFirestoreSync();
+            seedDefaultMenu();
         });
     </script>
 </body>

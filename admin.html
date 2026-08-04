@@ -956,14 +956,15 @@
                          } catch (e) { console.error('Sync error for', key, e); }
                      }
                  }
-                 if (statusEl) statusEl.textContent = '✅ Sincronização concluída! ' + count + ' blocos de dados enviados.';
-                 showToast('Sincronização concluída!');
-             } catch (e) {
-                 console.error('Sync error:', e);
-                 if (statusEl) statusEl.textContent = '❌ Erro na sincronização: ' + e.message;
-                 showToast('Erro na sincronização');
-             }
-         }
+                  if (statusEl) statusEl.textContent = '✅ Sincronização concluída! ' + count + ' blocos de dados enviados.';
+                  showToast('Sincronização concluída!');
+                  seedDefaultMenu();
+              } catch (e) {
+                  console.error('Sync error:', e);
+                  if (statusEl) statusEl.textContent = '❌ Erro na sincronização: ' + e.message;
+                  showToast('Erro na sincronização');
+              }
+          }
 
          // ── Migration: localStorage → Firestore ──
         async function migrateLocalStorageToFirebase() {
@@ -989,9 +990,32 @@
                 }
             }
             if (migrated) showToast('Dados migrados do localStorage para o Firestore!');
-        }
+         }
 
-        // ── Realtime Sync: Firestore → localStorage ──
+         // ── Seed: Carregar cardapio padrao do Firestore ──
+         async function seedDefaultMenu() {
+             try {
+                 const snapshot = await db.collection(ITEMS_COLLECTION).doc(getUserPrefix()).collection('items').get();
+                 if (snapshot.size > 0) return false;
+
+                 const response = await fetch('default-menu.json');
+                 if (!response.ok) throw new Error('Nao foi possivel carregar default-menu.json');
+                 const defaultItems = await response.json();
+
+                 const ref = db.collection(ITEMS_COLLECTION).doc(getUserPrefix()).collection('items');
+                 for (const item of defaultItems) {
+                     await ref.doc(item.id).set(item);
+                 }
+                 showToast('Cardapio padrao carregado do Firestore!');
+                 return true;
+             } catch (e) {
+                 console.error('Seed error:', e);
+                 showToast('Erro ao carregar cardapio padrao');
+                 return false;
+             }
+         }
+
+         // ── Realtime Sync: Firestore → localStorage ──
         function setupFirestoreSync() {
             // Sync items
             db.collection(ITEMS_COLLECTION).doc(getUserPrefix()).collection('items').onSnapshot(function(snapshot) {
