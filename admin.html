@@ -1260,8 +1260,9 @@
              return;
          }
           items[idx].active = !(items[idx].active !== false);
-          firebaseSaveItems(items);
-          renderPrices();
+                 firebaseSaveItems(items);
+                 localStorage.setItem('hb_prices', JSON.stringify(items));
+                 renderPrices();
           showToast(items[idx].name + (items[idx].active ? ' ativado' : ' pausado'));
      }
 
@@ -1332,8 +1333,9 @@
                 items[editingIndex].active = active;
                 items[editingIndex].description = description;
                 items[editingIndex].image = image;
-                items[editingIndex].imageV = Date.now();
-                firebaseSaveItems(items);
+                 items[editingIndex].imageV = Date.now();
+                 localStorage.setItem('hb_prices', JSON.stringify(items));
+                 firebaseSaveItems(items);
                 renderPrices();
                 closeNewProductModal();
                 editingIndex = -1;
