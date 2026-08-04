@@ -345,11 +345,8 @@
             function renderMenu() {
                 firebaseGetItems().then(function(items) {
                     if (!items || items.length === 0) {
-                        items = DEFAULT_ITEMS;
-                    }
-                    items.forEach(function(item) { if (item.active === undefined) item.active = true; });
-                    // Fallback: use default data
-                    items = [
+                        // Fallback: use default data
+                        items = [
                         { section: 'Lanches', name: 'Nava\'s Kids', original: '19,99', discount: 1, price: '19,90', active: true, description: 'Pão de brioche, carne de 100g, queijo mussarela e maionese verde da casa.', image: 'imagens/Lanche1.png', composition: [ { stockName: 'Pão de Brioche', qty: 1 }, { stockName: 'Carne Bovina 100g', qty: 1 }, { stockName: 'Queijo Mussarela', qty: 1 }, { stockName: 'Maionese Verde da Casa', qty: 1 } ] },
                         { section: '', name: 'Nava\'s Salada', original: '25,99', discount: 27, price: '18,90', active: true, description: 'Pão de brioche, carne de 100g, mussarela fatiada, alface americana e maionese verde da casa.', image: 'imagens/Lanche2.png', composition: [ { stockName: 'Pão de Brioche', qty: 1 }, { stockName: 'Carne Bovina 100g', qty: 1 }, { stockName: 'Queijo Mussarela', qty: 1 }, { stockName: 'Alface', qty: 1 }, { stockName: 'Maionese Verde da Casa', qty: 1 } ] },
                         { section: '', name: 'Nava\'s Onion', original: '26,99', discount: 19, price: '21,90', active: true, description: 'Pão de brioche, carne de 100g, queijo mussarela, cebola empanada (onion rings), barbecue e maionese verde da casa.', image: 'imagens/LancheOnion.jpg', composition: [ { stockName: 'Pão de Brioche', qty: 1 }, { stockName: 'Carne Bovina 100g', qty: 1 }, { stockName: 'Queijo Mussarela', qty: 1 }, { stockName: 'Cebola Empanada', qty: 1 }, { stockName: 'Barbecue', qty: 1 } ] },
@@ -535,8 +532,9 @@
                 });
             }
             });
+        }
 
-            renderMenu();
+        renderMenu();
             // Keep menu in sync with stock changes (hide products out of stock)
             setInterval(renderMenu, 20000);
         })();
