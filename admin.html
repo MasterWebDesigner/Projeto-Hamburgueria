@@ -1311,11 +1311,11 @@
             document.getElementById('npFinal').value = disc > 0 ? 'R$ ' + calcFinal(orig, disc) : 'R$ ' + orig;
         }
          async function saveNewProduct() {
-            var name = document.getElementById('npName').value.trim();
-            if (!name) { showToast('Informe o nome do produto'); return; }
-            var section = document.getElementById('npSection').value;
-            var items = getItems();
-            var original = document.getElementById('npOriginal').value.trim();
+             var name = document.getElementById('npName').value.trim();
+             if (!name) { showToast('Informe o nome do produto'); return; }
+             var section = document.getElementById('npSection').value;
+             var items = await firebaseGetItems();
+             var original = document.getElementById('npOriginal').value.trim();
             if (!original) { showToast('Informe o preço original'); return; }
             var discount = parseInt(document.getElementById('npDiscount').value) || 0;
             var active = document.getElementById('npActive').value === '1';
