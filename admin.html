@@ -914,7 +914,50 @@
             } catch (e) { console.error('Firebase saveConfig error:', e); showToast('Erro ao salvar configuração'); }
         }
 
-        // ── Migration: localStorage → Firestore ──
+         // ── Sync: localStorage → Firestore (manual) ──
+         async function syncLocalStorageToFirestore() {
+             var statusEl = document.getElementById('syncStatus');
+             if (statusEl) statusEl.textContent = 'Sincronizando...';
+             try {
+                 var keys = ['hb_prices', 'hb_stock', 'hb_orders', 'hb_loyalty', 'hb_whatsapp', 'hb_delivery_fee', 'hb_delivery_estimate'];
+                 var count = 0;
+                 for (var i = 0; i < keys.length; i++) {
+                     var key = keys[i];
+                     var val = localStorage.getItem(key);
+                     if (val) {
+                         try {
+                             var parsed = JSON.parse(val);
+                             if (key === 'hb_prices') {
+                                 await firebaseSaveItems(parsed);
+                             } else if (key === 'hb_stock') {
+                                 await firebaseSaveStock(parsed);
+                             } else if (key === 'hb_orders') {
+                                 for (var j = 0; j < parsed.length; j++) {
+                                     await firebaseSaveOrder(parsed[j]);
+                                 }
+                             } else if (key === 'hb_loyalty') {
+                                 await firebaseSaveLoyalty(parsed);
+                             } else if (key === 'hb_whatsapp') {
+                                 await firebaseSaveConfig({ whatsapp: parsed });
+                             } else if (key === 'hb_delivery_fee') {
+                                 await firebaseSaveConfig({ deliveryFee: parsed });
+                             } else if (key === 'hb_delivery_estimate') {
+                                 await firebaseSaveConfig({ deliveryEstimate: parsed });
+                             }
+                             count++;
+                         } catch (e) { console.error('Sync error for', key, e); }
+                     }
+                 }
+                 if (statusEl) statusEl.textContent = '✅ Sincronização concluída! ' + count + ' blocos de dados enviados.';
+                 showToast('Sincronização concluída!');
+             } catch (e) {
+                 console.error('Sync error:', e);
+                 if (statusEl) statusEl.textContent = '❌ Erro na sincronização: ' + e.message;
+                 showToast('Erro na sincronização');
+             }
+         }
+
+         // ── Migration: localStorage → Firestore ──
         async function migrateLocalStorageToFirebase() {
             const keys = ['hb_prices', 'hb_stock', 'hb_orders', 'hb_loyalty', 'hb_whatsapp', 'hb_delivery_fee', 'hb_delivery_estimate'];
             let migrated = false;
@@ -3011,11 +3054,19 @@
             showToast('Taxa de entrega: R$ ' + v.toFixed(2).replace('.', ','));
         }
 
-        function loadDeliveryFee() {
-            document.getElementById('deliveryFee').value = getDeliveryFee();
-        }
+         function loadDeliveryFee() {
+             document.getElementById('deliveryFee').value = getDeliveryFee();
+         }
 
-        /* ─── Backup / Restore ─── */
+         <!-- ── Sync Button ── -->
+         <div class="card" style="margin-top:16px;">
+             <h3>🔄 Sincronizar LocalStorage com Firestore</h3>
+             <p style="color:#888;font-size:0.8rem;margin-bottom:12px;">Clique para enviar todos os dados do localStorage para o Firestore. Isso sobrescreve os dados existentes no Firestore.</p>
+             <button class="btn-action btn-gold" onclick="syncLocalStorageToFirestore()">Sincronizar Agora</button>
+             <div id="syncStatus" style="margin-top:8px;font-size:0.85rem;"></div>
+         </div>
+
+         /* ─── Backup / Restore ─── */
         var BACKUP_KEYS = ['hb_prices', 'hb_orders', 'hb_loyalty', 'hb_loyalty_config', 'hb_stock', 'hb_status', 'hb_hours', 'hb_whatsapp', 'hb_delivery_estimate', 'hb_delivery_fee'];
 
         function exportBackup() {
