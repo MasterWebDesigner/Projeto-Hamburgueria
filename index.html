@@ -1,649 +1,178 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Navarro Burguer - Hamburgueria Artesanal</title>
-    <link rel="stylesheet" href="styles.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800;900&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
-</head>
-<body>
-    <div class="header-section top-bar" id="topBar">
-        <span id="topMarquee">🟢 Aberto | Terça a Domingo, das 18h às 23h30 | Delivery em Diadema</span>
-    </div>
-    <div id="stockWarning" style="display:none;background:#e63946;color:#fff;text-align:center;padding:6px 12px;font-size:0.8rem;font-weight:700;animation:blinkWarning 1s infinite;">
-        ⚠️ Atenção: itens com estoque baixo no Admin
-    </div>
-    <style>
-        @keyframes blinkWarning {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.4; }
+// Firebase configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyCx8hEqnuBVkTibLiBgSUHWZHB2ar2jTtQ",
+  authDomain: "navarro-burguer.firebaseapp.com",
+  projectId: "navarro-burguer",
+  storageBucket: "navarro-burguer.firebasestorage.app",
+  messagingSenderId: "898606714799",
+  appId: "1:898606714799:web:3373f0c2ad3a6cea20e95a"
+};
+
+// Initialize Firebase
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+// ── Firestore Collection References ──
+const ITEMS_COLLECTION = 'cardapio';
+const CONFIG_COLLECTION = 'config';
+
+// ── Global Firestore References ──
+let userItemsRef = null;
+let userConfigRef = null;
+
+// ── Initialize Firebase Collections ──
+async function initializeFirebaseCollections() {
+    try {
+        userItemsRef = db.collection(ITEMS_COLLECTION).doc('admin').collection('items');
+        userConfigRef = db.collection(CONFIG_COLLECTION).doc('admin');
+
+        // Initialize collections if they don't exist
+        await initializeItemsCollection();
+        await initializeConfigCollection();
+    } catch (error) {
+        console.error('Error initializing Firebase collections: ', error);
+    }
+}
+
+// ── Initialize Items Collection ──
+async function initializeItemsCollection() {
+    try {
+        const itemsDoc = await userItemsRef.doc('default').get();
+        if (!itemsDoc.exists) {
+            await userItemsRef.doc('default').set(DEFAULT_ITEMS);
         }
-    </style>
-    <div class="header-section navbar">
-        <a href="#" class="logo">Navarro <span>Burguer</span></a>
-        <button class="mobile-toggle" aria-label="Menu">&#9776;</button>
-        <ul class="nav-menu">
-            <li><a href="#hero">Início</a></li>
-            <li><a href="#depoimentos">Depoimentos</a></li>
-            <li><a href="#contato">Contato</a></li>
-        </ul>
-    </div>
+    } catch (error) {
+        console.error('Error initializing items collection: ', error);
+    }
+}
 
-    <!-- Category Navigation Tabs -->
-    <nav class="header-section cat-nav" id="catNav">
-        <a href="#cat-lanches" class="cat-nav-link active">🍔 Lanches</a>
-        <a href="#cat-porcoes" class="cat-nav-link">🍟 Porções</a>
-        <a href="#cat-milk-shakes" class="cat-nav-link">🥤 Milk Shakes</a>
-        <a href="#cat-sucos" class="cat-nav-link">🧃 Sucos</a>
-        <a href="#cat-bebidas" class="cat-nav-link">🥤 Bebidas</a>
-    </nav>
-
-    <section class="hero" id="hero">
-        <div class="container hero-content">
-            <div class="hero-text">
-                <span class="hero-badge">🔥 Hambúrguer Artesanal na Brasa</span>
-                <h1>O verdadeiro sabor do <span class="highlight">fogo</span> no pão artesanal</h1>
-                <p>Ingredientes selecionados, pão artesanal e aquele hambúrguer suculento <strong>feito na brasa</strong> para você.</p>
-                <a href="https://wa.me/5511966378328" target="_blank" class="btn btn-primary">Fazer Pedido</a>
-            </div>
-            <div class="hero-image">
-                <img src="imagens/Foto0.png" alt="Hambúrguer artesanal">
-            </div>
-        </div>
-    </section>
-
-    <section class="menu" id="menu">
-        <div class="container">
-            <div class="section-header">
-                <span class="section-tag">Nosso Cardápio</span>
-                <h2>Escolha o seu preferido</h2>
-            </div>
-            <div class="section-header promo-header">
-                <span class="section-tag">🔥 Promoção do Dia</span>
-                <h2 id="promo-timer">⏱ Ofertas imperdíveis por tempo limitado</h2>
-            </div>
-            <div class="promo-card">
-                <div class="promo-items">
-                    <div class="promo-item">
-                        <div class="promo-img-wrap">
-                            <img src="imagens/Lanche2.png" alt="Nava's Salada">
-                            <span class="discount-badge promo-discount">27% OFF</span>
-                        </div>
-                        <div class="promo-item-body">
-                            <h3>Nava's Salada</h3>
-                            <p>Pão de brioche, carne 100g, mussarela fatiada, alface americana e maionese verde.</p>
-                            <div class="promo-price">
-                                <span class="promo-old-price">R$ 25,99</span>
-                                <span class="promo-current-price">R$ 18,90</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="promo-item">
-                        <div class="promo-img-wrap">
-                            <img src="imagens/LancheOnion.jpg" alt="Nava's Onion">
-                            <span class="discount-badge promo-discount">19% OFF</span>
-                        </div>
-                        <div class="promo-item-body">
-                            <h3>Nava's Onion</h3>
-                            <p>Pão de brioche, carne 100g, mussarela, cebola empanada, barbecue e maionese verde.</p>
-                            <div class="promo-price">
-                                <span class="promo-old-price">R$ 26,99</span>
-                                <span class="promo-current-price">R$ 21,90</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="promo-cta">
-                    <a href="https://wa.me/5511966378328" target="_blank" class="promo-btn">PEÇA AGORA!</a>
-                </div>
-            </div>
-            <div id="dynamicMenu"></div>
-        </div>
-    </section>
-
-    <section class="testimonials" id="depoimentos">
-        <div class="container">
-            <div class="section-header">
-                <span class="section-tag">Depoimentos</span>
-                <h2>O que nossos clientes dizem</h2>
-            </div>
-            <div class="testimonials-grid">
-                <blockquote class="testimonial-card">
-                    <div class="stars">★★★★★</div>
-                    <p>"Melhor hambúrguer da cidade! O smash é suculento e o pão artesanal faz toda a diferença."</p>
-                    <cite>— Lucas M.</cite>
-                </blockquote>
-                <blockquote class="testimonial-card">
-                    <div class="stars">★★★★★</div>
-                    <p>"Entrega rápida e embalagem impecável. O barbecue vem com bastante bacon crocante, maravilhoso!"</p>
-                    <cite>— Juliana R.</cite>
-                </blockquote>
-                <blockquote class="testimonial-card">
-                    <div class="stars">★★★★★</div>
-                    <p>"Sou vegetariano e fiquei impressionado com o Veggie. Sabor incrível, nada a dever aos tradicionais."</p>
-                    <cite>— Fernando S.</cite>
-                </blockquote>
-            </div>
-        </div>
-    </section>
-
-    <footer class="footer" id="contato">
-        <div class="container footer-content">
-            <div class="footer-brand">
-            <a href="#" class="logo">Navarro <span>Burguer</span></a>
-                <p>Hamburgueria artesanal com ingredientes frescos e amor em cada detalhe.</p>
-            </div>
-            <div class="footer-info">
-                <h4>Horário</h4>
-                <p>Ter–Sáb: 18h–23h<br>Dom: 17h–22h</p>
-            </div>
-            <div class="footer-info">
-                <h4>Endereço</h4>
-                <p>Av. Nossa Senhora do Navegantes, 430<br>Eldorado, Diadema-SP</p>
-                <p style="margin-top:8px;"><a href="https://maps.google.com/?q=Av.+Nossa+Senhora+do+Navegantes+430+Diadema+SP" target="_blank" style="color:#ffb703;text-decoration:none;font-size:0.8rem;">📌 Ver no mapa</a></p>
-            </div>
-            <div class="footer-cta">
-                <h4>Peça agora</h4>
-                <a href="https://wa.me/5511966378328" target="_blank" class="btn btn-primary btn-whatsapp">
-                    WhatsApp
-                </a>
-            </div>
-        </div>
-        <div class="footer-map">
-            <iframe src="https://maps.google.com/maps?q=Av.+Nossa+Senhora+do+Navegantes+430+Diadema+SP&output=embed" width="100%" height="280" style="border:0;display:block;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
-        </div>
-        <div class="footer-bottom">
-            <div class="container">
-                <p>&copy; 2026 Navarro Burguer. Todos os direitos reservados. <a href="admin.html" style="color:#555;text-decoration:none;font-size:0.75rem;">Admin</a></p>
-            </div>
-        </div>
-    </footer>
-
-    <a href="https://wa.me/5511966378328" target="_blank" class="whatsapp-float" aria-label="WhatsApp">
-        <span>💬</span>
-    </a>
-
-    <!-- Cart Float -->
-    <div class="cart-float" onclick="openCartModal()">
-        <span class="cart-float-icon">🛒</span>
-        <span class="cart-badge" id="cartBadge">0</span>
-        <span class="cart-float-total" id="cartTotal">R$ 0,00</span>
-    </div>
-
-    <!-- Cart Modal -->
-    <div class="cart-modal" id="cartModal">
-        <div class="cart-modal-overlay"></div>
-        <div class="cart-modal-content">
-            <button class="cart-modal-close">&times;</button>
-            <h3>🛒 Seu Carrinho</h3>
-            <div class="cart-items" id="cartItemsList">
-                <div class="cart-empty">Seu carrinho está vazio</div>
-            </div>
-            <div class="cart-form">
-                <input type="text" id="orderName" placeholder="Seu nome *" class="cart-input">
-                <input type="tel" id="orderPhone" placeholder="Celular (11) 99999-9999 *" class="cart-input">
-                <div id="couponArea" class="coupon-area" style="display:none"></div>
-                <div id="addressFields" style="display:flex;flex-direction:column;gap:8px;">
-                    <div style="display:grid;grid-template-columns:2fr 1fr;gap:8px;">
-                        <input type="text" id="addrStreet" placeholder="Rua *" class="cart-input">
-                        <input type="text" id="addrNumber" placeholder="Nº *" class="cart-input">
-                    </div>
-                    <input type="text" id="addrNeighborhood" placeholder="Bairro" class="cart-input">
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-                        <input type="text" id="addrComplement" placeholder="Complemento" class="cart-input">
-                        <input type="text" id="addrReference" placeholder="Ponto de Referência" class="cart-input">
-                    </div>
-                </div>
-                <select id="orderPayment" class="cart-input" onchange="toggleChangeField()">
-                    <option value="Dinheiro">Dinheiro</option>
-                    <option value="Cartão de Crédito">Cartão de Crédito</option>
-                    <option value="Cartão de Débito">Cartão de Débito</option>
-                    <option value="Pix">Pix</option>
-                </select>
-                <div id="changeField" style="display:none;align-items:center;gap:8px;background:#111;border-radius:10px;padding:8px 16px;border:1px solid #333;">
-                    <span style="color:#aaa;font-size:0.85rem;white-space:nowrap;">💰 Troco p/</span>
-                    <input type="text" id="changeFor" placeholder="R$ 50,00" class="cart-input" style="padding:10px 12px;margin:0;">
-                </div>
-                <select id="orderType" class="cart-input">
-                    <option value="Entregar">Entregar (Delivery)</option>
-                    <option value="Retirar">Retirar no Local</option>
-                    <option value="Consumir no Local">Consumir no Local</option>
-                </select>
-                <div id="deliveryEstimateDisplay" class="cart-estimate" style="display:none;"></div>
-                <textarea id="orderNotes" placeholder="Observações (opcional)" class="cart-input cart-textarea"></textarea>
-                <button class="cart-send-btn" onclick="sendOrder()">📲 Enviar Pedido</button>
-            </div>
-        </div>
-    </div>
-
-    <div class="extras-modal" id="extrasModal">
-        <div class="extras-overlay"></div>
-        <div class="extras-content">
-            <button class="extras-close">&times;</button>
-            <h3>➕ Adicionais</h3>
-            <p style="color:#888;font-size:0.85rem;margin-bottom:16px;">Selecione os adicionais para <strong id="extrasItemName" style="color:#fff;"></strong></p>
-            <div id="extrasList" class="extras-list"></div>
-            <button class="extras-save-btn" onclick="saveExtras()">Salvar Adicionais</button>
-        </div>
-    </div>
-
-    <script src="script.js"></script>
-
-    <div class="modal" id="productModal">
-        <div class="modal-overlay"></div>
-        <div class="modal-content">
-            <button class="modal-close">&times;</button>
-            <img id="modalImg" src="" alt="">
-            <div class="modal-body">
-                <h3 id="modalTitle"></h3>
-                <p id="modalDesc"></p>
-                <div class="modal-footer">
-                    <span id="modalPrice" class="price"></span>
-                    <a id="modalBtn" href="https://wa.me/5511966378328" target="_blank" class="btn btn-primary">Pedir via WhatsApp</a>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        // Admin sync
-        (function() {
-            var status = localStorage.getItem('hb_status');
-            var hours = localStorage.getItem('hb_hours');
-            var mq = document.getElementById('topMarquee');
-            if (status === 'closed') {
-                if (mq) mq.innerHTML = '🔴 Fechados no momento | ' + (hours || 'Voltamos em breve!') + ' | Delivery em Diadema';
-            } else if (hours) {
-                if (mq) mq.innerHTML = '🟢 Aberto | ' + hours + ' | Delivery em Diadema';
-            }
-        })();
-
-        // Dynamic menu rendering
-        (function() {
-            var DEFAULT_IMAGES = {
-                'Nava\'s Kids': 'imagens/Lanche1.png',
-                'Nava\'s Salada': 'imagens/Lanche2.png',
-                'Nava\'s Onion': 'imagens/LancheOnion.jpg',
-                'Nava\'s Cheddar': 'imagens/Lanche4.png',
-                'Nava\'s Bacon': 'imagens/Lanche5.png',
-                'Nava\'s Duplo Cheddar': 'imagens/Lanche6.png',
-            };
-            var DEFAULT_DESCS = {
-                'Nava\'s Kids': 'Pão de brioche, carne de 100g, queijo mussarela e maionese verde da casa.',
-                'Nava\'s Salada': 'Pão de brioche, carne de 100g, mussarela fatiada, alface americana e maionese verde da casa.',
-                'Nava\'s Onion': 'Pão de brioche, carne de 100g, queijo mussarela, cebola empanada (onion rings), barbecue e maionese verde da casa.',
-                'Nava\'s Cheddar': 'Pão de brioche, carne de 100g, cheddar cremoso, bacon picado e maionese verde da casa.',
-                'Nava\'s Bacon': 'Pão de brioche, carne de 100g, mussarela fatiada, bacon fatiado, cebola caramelizada, barbecue e maionese verde da casa.',
-                'Nava\'s Duplo Cheddar': 'Pão de brioche, duas carnes de 100g, cheddar cremoso, bacon picado e maionese verde da casa.',
-                'Batata Frita': 'Porção de batata frita crocante servida com ketchup e maionese.',
-                'Batata Cheddar Bacon': 'Batata frita coberta com cheddar cremoso e bacon picado.',
-                'Onion Rings': 'Anéis de cebola empanados e fritos, servidos com molho barbecue.',
-                'Iscas de Frango': 'Iscas de frango empanadas e crocantes, acompanhadas de molho agridoce.',
-                'Calabresa Acebolada': 'Calabresa fatiada grelhada com cebola, servida com pão e vinagrete.',
-                'Polenta Frita': 'Porção de polenta frita crocante servida com molho de queijo.',
-                'Mandioca Frita': 'Porção de mandioca frita crocante acompanhada de molho especial.',
-                'Mix de Fritas': 'Combo de batata, polenta e mandioca frita com 3 molhos especiais.',
-                'Chocolate': 'Milk shake cremoso de chocolate feito com sorvete artesanal.',
-                'Morango': 'Milk shake cremoso de morango com calda de frutas vermelhas.',
-                'Baunilha': 'Milk shake clássico de baunilha com calda de chocolate.',
-                'Ovomaltine': 'Milk shake de Ovomaltine com crocância e calda de chocolate.',
-                'Ninho com Nutella': 'Milk shake de leite Ninho com Nutella e pedaços de chocolate.',
-                'Oreo': 'Milk shake de Oreo com pedaços do biscoito e calda de chocolate.',
-                'Doce de Leite': 'Milk shake cremoso de doce de leite feito com sorvete artesanal.',
-                'Menta com Chocolate': 'Milk shake refrescante de menta com calda de chocolate e pedaços.',
-                'Paçoca': 'Milk shake de paçoca cremoso com farofa de paçoca e calda de chocolate.',
-                'Laranja': 'Suco natural de laranja espremido na hora.',
-                'Limão': 'Suco natural de limão fresco.',
-                'Maracujá': 'Suco natural de maracujá.',
-                'Abacaxi com Hortelã': 'Suco refrescante de abacaxi com hortelã.',
-                'Suco Morango': 'Suco natural de morango.',
-                'Acerola': 'Suco natural de acerola.',
-                'Coca-Cola Lata': 'Refrigerante Coca-Cola lata 350ml gelada.',
-                'Guaraná Lata': 'Refrigerante Guaraná Antarctica lata 350ml gelada.',
-                'Fanta Laranja Lata': 'Refrigerante Fanta Laranja lata 350ml gelada.',
-                'Sprite Lata': 'Refrigerante Sprite lata 350ml gelada.',
-                'Coca-Cola 600ml': 'Refrigerante Coca-Cola 600ml gelada.',
-                'Coca-Cola 2L': 'Refrigerante Coca-Cola 2 litros gelada.',
-                'Guaraná 600ml': 'Refrigerante Guaraná Antarctica 600ml gelada.',
-                'Guaraná 2L': 'Refrigerante Guaraná Antarctica 2 litros gelada.',
-                'Água Mineral': 'Água mineral sem gás 500ml.',
-                'Água com Gás': 'Água mineral com gás 500ml.',
-                'Churros': 'Churros crocantes recheados com doce de leite e cobertura de chocolate.',
-                'Brownie': 'Brownie de chocolate com nozes, servido quente com sorvete.',
-                'Pudim': 'Pudim de leite condensado caseiro com calda de caramelo.',
-                'Petit Gateau': 'Petit gateau de chocolate servido com sorvete de baunilha.',
-                'Batata Cheddar Bacon': 'Batata frita coberta com cheddar cremoso e bacon picado.',
-                'Onion Rings': 'Anéis de cebola empanados e fritos, servidos com molho barbecue.',
-                'Iscas de Frango': 'Iscas de frango empanadas e crocantes, acompanhadas de molho agridoce.',
-                'Calabresa Acebolada': 'Calabresa fatiada grelhada com cebola, servida com pão e vinagrete.',
-                'Polenta Frita': 'Porção de polenta frita crocante servida com molho de queijo.',
-                'Mandioca Frita': 'Porção de mandioca frita crocante acompanhada de molho especial.',
-                'Mix de Fritas': 'Combo de batata, polenta e mandioca frita com 3 molhos especiais.',
-            };
-
-            function sectionId(section) {
-                var map = {
-                    'Lanches': 'cat-lanches',
-                    'Lanche Especial': 'cat-lanche-especial',
-                    '🔥 Smash Navarro\'s': 'smash-section',
-                    '🍟 Porções': 'cat-porcoes',
-                    '🥤 Milk Shakes': 'cat-milk-shakes',
-                    '🧃 Sucos': 'cat-sucos',
-                    '🥤 Refrigerantes': 'cat-bebidas',
-                };
-                var id = map[section];
-                if (id) return id;
-                return 'cat-' + section.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-            }
-
-            function isComboSection(section) {
-                return section.indexOf('Combo') !== -1 || section.indexOf('Promocionais') !== -1;
-            }
-
-            function renderMenu() {
-                var stored = localStorage.getItem('hb_prices');
-                var items;
-                if (stored) {
-                    try { items = JSON.parse(stored); } catch(e) {}
-                    if (items) items.forEach(function(item) { if (item.active === undefined) item.active = true; });
-                }
-                if (!items || items.length === 0) {
-                    // Fallback: use default data
-                    items = [
-                        { section: 'Lanches', name: 'Nava\'s Kids', original: '19,99', discount: 1, price: '19,90', active: true, description: 'Pão de brioche, carne de 100g, queijo mussarela e maionese verde da casa.', image: 'imagens/Lanche1.png', composition: [ { stockName: 'Pão de Brioche', qty: 1 }, { stockName: 'Carne Bovina 100g', qty: 1 }, { stockName: 'Queijo Mussarela', qty: 1 }, { stockName: 'Maionese Verde da Casa', qty: 1 } ] },
-                        { section: '', name: 'Nava\'s Salada', original: '25,99', discount: 27, price: '18,90', active: true, description: 'Pão de brioche, carne de 100g, mussarela fatiada, alface americana e maionese verde da casa.', image: 'imagens/Lanche2.png', composition: [ { stockName: 'Pão de Brioche', qty: 1 }, { stockName: 'Carne Bovina 100g', qty: 1 }, { stockName: 'Queijo Mussarela', qty: 1 }, { stockName: 'Alface', qty: 1 }, { stockName: 'Maionese Verde da Casa', qty: 1 } ] },
-                        { section: '', name: 'Nava\'s Onion', original: '26,99', discount: 19, price: '21,90', active: true, description: 'Pão de brioche, carne de 100g, queijo mussarela, cebola empanada (onion rings), barbecue e maionese verde da casa.', image: 'imagens/LancheOnion.jpg', composition: [ { stockName: 'Pão de Brioche', qty: 1 }, { stockName: 'Carne Bovina 100g', qty: 1 }, { stockName: 'Queijo Mussarela', qty: 1 }, { stockName: 'Cebola Empanada', qty: 1 }, { stockName: 'Barbecue', qty: 1 } ] },
-                        { section: '', name: 'Nava\'s Cheddar', original: '25,99', discount: 15, price: '21,90', active: true, description: 'Pão de brioche, carne de 100g, cheddar cremoso, bacon picado e maionese verde da casa.', image: 'imagens/Lanche4.png', composition: [ { stockName: 'Pão de Brioche', qty: 1 }, { stockName: 'Carne Bovina 100g', qty: 1 }, { stockName: 'Queijo Cheddar', qty: 1 }, { stockName: 'Bacon', qty: 1 }, { stockName: 'Maionese Verde da Casa', qty: 1 } ] },
-                        { section: '', name: 'Nava\'s Bacon', original: '25,90', discount: 15, price: '21,90', active: true, description: 'Pão de brioche, carne de 100g, mussarela fatiada, bacon fatiado, cebola caramelizada, barbecue e maionese verde da casa.', image: 'imagens/Lanche5.png', composition: [ { stockName: 'Pão de Brioche', qty: 1 }, { stockName: 'Carne Bovina 100g', qty: 1 }, { stockName: 'Queijo Mussarela', qty: 1 }, { stockName: 'Bacon', qty: 1 }, { stockName: 'Cebola Caramelizada', qty: 1 }, { stockName: 'Barbecue', qty: 1 }, { stockName: 'Maionese Verde da Casa', qty: 1 } ] },
-                        { section: '', name: 'Nava\'s Duplo Cheddar', original: '30,99', discount: 6, price: '28,90', active: true, description: 'Pão de brioche, duas carne de 100g, cheddar cremoso, bacon picado e maionese verde da casa.', image: 'imagens/Lanche6.png', composition: [ { stockName: 'Pão de Brioche', qty: 1 }, { stockName: 'Carne Bovina 100g', qty: 2 }, { stockName: 'Queijo Cheddar', qty: 1 }, { stockName: 'Bacon', qty: 1 }, { stockName: 'Maionese Verde da Casa', qty: 1 } ] },
-                        { section: 'Lanche Especial', name: 'Murph\'s Barbecue', original: '46,90', discount: 0, price: '46,90', active: true, description: '', image: '' },
-                        { section: '', name: 'Murph\'s Supreme', original: '44,90', discount: 0, price: '44,90', active: true, description: '', image: '' },
-                        { section: '', name: 'Murph\'s Gorgonzola', original: '48,90', discount: 0, price: '48,90', active: true, description: '', image: '' },
-                        { section: '', name: 'Murph\'s Texas', original: '49,90', discount: 0, price: '49,90', active: true, description: '', image: '' },
-                        { section: '', name: 'Murph\'s Costela', original: '52,90', discount: 0, price: '52,90', active: true, description: '', image: '' },
-                        { section: '', name: 'Murph\'s Filé Mignon', original: '56,90', discount: 0, price: '56,90', active: true, description: '', image: '' },
-                        { section: '', name: 'Murph\'s Frango Crispy', original: '39,90', discount: 0, price: '39,90', active: true, description: '', image: '' },
-                        { section: '', name: 'Murph\'s Veggie', original: '36,90', discount: 0, price: '36,90', active: true, description: '', image: '' },
-                        { section: '', name: 'Murph\'s Duplo', original: '54,90', discount: 0, price: '54,90', active: true, description: '', image: '' },
-                        { section: '🍟 Porções', name: 'Batata Frita', original: '18,90', discount: 0, price: '18,90', active: true, description: '', image: '' },
-                        { section: '', name: 'Batata Cheddar Bacon', original: '26,90', discount: 0, price: '26,90', active: true, description: '', image: '' },
-                        { section: '', name: 'Onion Rings', original: '19,90', discount: 0, price: '19,90', active: true, description: '', image: '' },
-                        { section: '', name: 'Iscas de Frango', original: '24,90', discount: 0, price: '24,90', active: true, description: '', image: '' },
-                        { section: '', name: 'Calabresa Acebolada', original: '22,90', discount: 0, price: '22,90', active: true, description: '', image: '' },
-                        { section: '', name: 'Polenta Frita', original: '17,90', discount: 0, price: '17,90', active: true, description: '', image: '' },
-                        { section: '', name: 'Mandioca Frita', original: '18,90', discount: 0, price: '18,90', active: true, description: '', image: '' },
-                        { section: '', name: 'Mix de Fritas', original: '28,90', discount: 0, price: '28,90', active: true, description: '', image: '' },
-                        { section: '🥤 Milk Shakes', name: 'Chocolate', original: '16,90', discount: 0, price: '16,90', active: true, description: '', image: '' },
-                        { section: '', name: 'Morango', original: '16,90', discount: 0, price: '16,90', active: true, description: '', image: '' },
-                        { section: '', name: 'Baunilha', original: '16,90', discount: 0, price: '16,90', active: true, description: '', image: '' },
-                        { section: '', name: 'Ovomaltine', original: '19,90', discount: 0, price: '19,90', active: true, description: '', image: '' },
-                        { section: '', name: 'Ninho com Nutella', original: '22,90', discount: 0, price: '22,90', active: true, description: '', image: '' },
-                        { section: '', name: 'Oreo', original: '19,90', discount: 0, price: '19,90', active: true, description: '', image: '' },
-                        { section: '', name: 'Doce de Leite', original: '18,90', discount: 0, price: '18,90', active: true, description: '', image: '' },
-                        { section: '', name: 'Menta com Chocolate', original: '19,90', discount: 0, price: '19,90', active: true, description: '', image: '' },
-                        { section: '', name: 'Paçoca', original: '18,90', discount: 0, price: '18,90', active: true, description: '', image: '' },
-                        { section: '🧃 Sucos', name: 'Laranja', original: '8,90', discount: 0, price: '8,90', active: true, description: '', image: '' },
-                        { section: '', name: 'Limão', original: '7,90', discount: 0, price: '7,90', active: true, description: '', image: '' },
-                        { section: '', name: 'Maracujá', original: '9,90', discount: 0, price: '9,90', active: true, description: '', image: '' },
-                        { section: '', name: 'Abacaxi com Hortelã', original: '9,90', discount: 0, price: '9,90', active: true, description: '', image: '' },
-                        { section: '', name: 'Morango', original: '10,90', discount: 0, price: '10,90', active: true, description: '', image: '' },
-                        { section: '', name: 'Acerola', original: '9,90', discount: 0, price: '9,90', active: true, description: '', image: '' },
-                        { section: '🥤 Refrigerantes', name: 'Coca-Cola Lata', original: '5,90', discount: 0, price: '5,90', active: true, description: '', image: '' },
-                        { section: '', name: 'Guaraná Lata', original: '5,90', discount: 0, price: '5,90', active: true, description: '', image: '' },
-                        { section: '', name: 'Fanta Laranja Lata', original: '5,90', discount: 0, price: '5,90', active: true, description: '', image: '' },
-                        { section: '', name: 'Sprite Lata', original: '5,90', discount: 0, price: '5,90', active: true, description: '', image: '' },
-                        { section: '', name: 'Água Mineral', original: '3,90', discount: 0, price: '3,90', active: true, description: '', image: '' },
-                    ];
-                }
-                var container = document.getElementById('dynamicMenu');
-                if (!container) return;
-                container.innerHTML = '';
-                var currentSection = '';
-                var sectionDiv = null;
-                var grid = null;
-
-                // Stock check: products whose raw materials are inactive or out of stock are hidden
-                var stock = [];
-                try { stock = JSON.parse(localStorage.getItem('hb_stock')) || []; } catch(e) {}
-                var badStock = {};
-                stock.forEach(function(s) {
-                    if (s.active === undefined) s.active = true;
-                    if (s.active === false || s.qty <= 0) badStock[(s.name || '').toLowerCase().trim()] = true;
-                });
-
-                function isItemBlocked(item) {
-                    if (item.active === false) return true;
-                    if (item.composition && item.composition.length > 0) {
-                        var blocked = false;
-                        item.composition.forEach(function(c) {
-                            if (badStock[(c.stockName || '').toLowerCase().trim()]) blocked = true;
-                        });
-                        if (blocked) return true;
-                    }
-                    return false;
-                }
-
-                function roundTo90(v) {
-                    var n = parseFloat((v + '').replace(/\./g, '').replace(',', '.'));
-                    if (isNaN(n)) return v;
-                    return (Math.round(n - 0.90) + 0.90).toFixed(2).replace('.', ',');
-                }
-
-                items.forEach(function(item) {
-                    if (item.section) currentSection = item.section;
-                    if (isItemBlocked(item)) return;
-                    if (!currentSection) return;
-                    if (!sectionDiv || sectionDiv.id !== sectionId(currentSection)) {
-                        sectionDiv = document.createElement('div');
-                        sectionDiv.className = 'menu-category';
-                        sectionDiv.id = sectionId(currentSection);
-                        var title = document.createElement('h3');
-                        title.className = 'category-title';
-                        title.textContent = currentSection;
-                        sectionDiv.appendChild(title);
-                        grid = document.createElement('div');
-                        grid.className = 'menu-grid';
-                        sectionDiv.appendChild(grid);
-                        container.appendChild(sectionDiv);
-                    }
-                    if (!grid) return;
-
-                    var card = document.createElement('article');
-                    var isCombo = isComboSection(currentSection);
-                    card.className = 'card' + (isCombo ? ' combo-card' : '');
-
-                    var imgSrc = item.image || DEFAULT_IMAGES[item.name] || 'imagens/Foto0.png';
-                    if (item.image) imgSrc += '?v=' + (item.imageV || 0);
-                    var desc = item.description || DEFAULT_DESCS[item.name] || '';
-                    var hasDiscount = parseInt(item.discount) > 0;
-
-                    var imgHtml = '<img src="' + imgSrc + '" alt="' + item.name.replace(/"/g, '&quot;') + '" onerror="this.onerror=null;this.src=\'imagens/Foto0.png\'">';
-                    if (hasDiscount || isCombo) {
-                        imgHtml = '<div class="card-img-wrap">' + imgHtml +
-                            (hasDiscount ? '<span class="discount-badge">' + item.discount + '% OFF</span>' : '') +
-                            '</div>';
-                    }
-
-                    var footerHtml = '';
-                    if (hasDiscount) {
-                        footerHtml += '<span class="price-old">R$ ' + item.original + '</span>';
-                    }
-                    footerHtml += '<span class="price">R$ ' + (hasDiscount ? roundTo90(item.price) : item.price) + '</span>';
-                    footerHtml += '<a href="https://wa.me/5511966378328" target="_blank" class="btn btn-sm">Pedir</a>';
-
-                    card.innerHTML = imgHtml +
-                        '<div class="card-body">' +
-                            '<h3>' + item.name + '</h3>' +
-                            (desc ? '<p>' + desc + '</p>' : '') +
-                            '<div class="card-footer">' + footerHtml + '</div>' +
-                        '</div>';
-                    grid.appendChild(card);
-                });
-
-                // Sync WhatsApp links and promo prices
-                var waNum = (function(){ try { return localStorage.getItem('hb_whatsapp') || '5511966378328'; } catch(e) { return '5511966378328'; } })();
-                container.querySelectorAll('a[href*="wa.me"]').forEach(function(a) {
-                    var href = a.getAttribute('href');
-                    href = href.replace(/wa\.me\/\d+/, 'wa.me/' + waNum);
-                    a.setAttribute('href', href);
-                });
-                // Sync promo card prices from hb_prices
-                document.querySelectorAll('.promo-item').forEach(function(item) {
-                    var title = item.querySelector('h3');
-                    var priceEl = item.querySelector('.promo-current-price');
-                    var oldPriceEl = item.querySelector('.promo-old-price');
-                    if (title && priceEl) {
-                        var key = title.textContent.trim().toLowerCase();
-                        for (var pi = 0; pi < items.length; pi++) {
-                            if (items[pi].name.trim().toLowerCase() === key) {
-                                priceEl.textContent = 'R$ ' + (parseInt(items[pi].discount) > 0 ? roundTo90(items[pi].price) : items[pi].price);
-                                if (oldPriceEl) oldPriceEl.textContent = 'R$ ' + items[pi].original;
-                                break;
-                            }
-                        }
-                    }
-                });
-
-                // Re-init cart buttons and modal click handlers
-                if (typeof initCartButtons === 'function') initCartButtons();
-                setupDynamicModal();
-            }
-
-            function setupDynamicModal() {
-                var modal = document.getElementById('productModal');
-                if (!modal) return;
-                // Remove old listeners by replacing with new
-                document.querySelectorAll('#dynamicMenu .card').forEach(function(card) {
-                    card.addEventListener('click', function(e) {
-                        if (e.target.closest('.btn-sm')) return;
-                        if (e.target.closest('.btn-add-cart')) return;
-                        var img = this.querySelector('img');
-                        var title = this.querySelector('h3');
-                        var desc = this.querySelector('.card-body > p');
-                        var price = this.querySelector('.price');
-                        document.getElementById('modalImg').src = img ? img.src : '';
-                        document.getElementById('modalImg').alt = img ? img.alt : '';
-                        document.getElementById('modalTitle').textContent = title ? title.textContent : '';
-                        document.getElementById('modalDesc').textContent = desc ? desc.textContent : '';
-                        document.getElementById('modalPrice').textContent = price ? price.textContent : '';
-                        document.getElementById('modalBtn').href = 'https://wa.me/' + (function(){ try { return localStorage.getItem('hb_whatsapp') || '5511966378328'; } catch(e) { return '5511966378328'; }})() + '?text=Olá! Quero pedir o ' + encodeURIComponent(title ? title.textContent : '');
-                        modal.classList.add('open');
-                    });
-                });
-            }
-
-            renderMenu();
-            // Keep menu in sync with stock changes (hide products out of stock)
-            setInterval(renderMenu, 20000);
-        })();
-
-        document.querySelector('.mobile-toggle').addEventListener('click', function() {
-            document.querySelector('.nav-menu').classList.toggle('active');
-        });
-
-        (function() {
-            var modal = document.getElementById('productModal');
-            if (!modal) return;
-            document.getElementById('promo-timer').addEventListener('click', function() {
-                document.getElementById('modalImg').src = 'imagens/Lanche2.png';
-                document.getElementById('modalImg').alt = 'Promoção';
-                document.getElementById('modalTitle').textContent = '🔥 Promoção do Dia';
-                document.getElementById('modalDesc').textContent = 'Aproveite 27% OFF na Nava\'s Salada e 19% OFF na Nava\'s Onion! Oferta válida por tempo limitado. Peça já pelo WhatsApp.';
-                document.getElementById('modalPrice').textContent = '';
-                document.getElementById('modalBtn').href = 'https://wa.me/5511966378328?text=Olá! Quero aproveitar a promoção do dia!';
-                document.getElementById('modalBtn').textContent = 'Aproveitar Oferta';
-                modal.classList.add('open');
+// ── Initialize Config Collection ──
+async function initializeConfigCollection() {
+    try {
+        const configDoc = await userConfigRef.get();
+        if (!configDoc.exists) {
+            await userConfigRef.set({
+                whatsapp: '5511966378328',
+                deliveryFee: 10,
+                deliveryEstimate: '60-90 min',
+                lastBackup: null
             });
-            modal.querySelector('.modal-overlay').addEventListener('click', function() { modal.classList.remove('open'); });
-            modal.querySelector('.modal-close').addEventListener('click', function() { modal.classList.remove('open'); });
-            document.addEventListener('keydown', function(e) { if (e.key === 'Escape') modal.classList.remove('open'); });
-        })();
+        }
+    } catch (error) {
+        console.error('Error initializing config collection: ', error);
+    }
+}
 
-        // Category nav scroll highlight
-        (function() {
-            var links = document.querySelectorAll('.cat-nav-link');
-            var sections = [];
-            links.forEach(function(link) {
-                var id = link.getAttribute('href');
-                if (id && id.startsWith('#')) {
-                    var el = document.querySelector(id);
-                    if (el) sections.push({ link: link, el: el, id: id });
-                }
-                link.addEventListener('click', function(e) {
-                    var href = this.getAttribute('href');
-                    if (href && href.startsWith('#')) {
-                        e.preventDefault();
-                        var target = document.querySelector(href);
-                        if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                        links.forEach(function(l) { l.classList.remove('active'); });
-                        this.classList.add('active');
-                    }
-                });
-            });
-            function onScroll() {
-                var scrollY = window.scrollY + 140;
-                var current = null;
-                sections.forEach(function(s) {
-                    var top = s.el.offsetTop;
-                    if (scrollY >= top - 100) current = s;
-                });
-                links.forEach(function(l) { l.classList.remove('active'); });
-                if (current) current.link.classList.add('active');
-            }
-            window.addEventListener('scroll', onScroll);
-            onScroll();
-        })();
+// ── Firestore Data Access Functions ──
+async function getItems() {
+    try {
+        const snapshot = await userItemsRef.doc('default').collection('items').get();
+        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (error) {
+        console.error('Error getting items from Firestore: ', error);
+        return [];
+    }
+}
 
-        // Low stock warning
-        (function() {
-            function checkLowStock() {
-                var warn = document.getElementById('stockWarning');
-                if (!warn) return;
-                try {
-                    var stock = JSON.parse(localStorage.getItem('hb_stock')) || [];
-                    var outCount = 0;
-                    stock.forEach(function(s) { if (s.active === false || s.qty <= 0) outCount++; });
-                    var low = stock.some(function(s) { return s.qty <= s.min; });
-                    if (outCount > 0) {
-                        warn.textContent = '⚠️ Alguns itens do cardápio estão temporariamente indisponíveis';
-                        warn.style.display = 'block';
-                    } else if (low) {
-                        warn.textContent = '⚠️ Atenção: itens com estoque baixo no Admin';
-                        warn.style.display = 'block';
-                    } else {
-                        warn.style.display = 'none';
-                    }
-                } catch(e) { warn.style.display = 'none'; }
-            }
-            checkLowStock();
-            setInterval(checkLowStock, 10000);
-        })();
+async function getWhatsapp() {
+    try {
+        const doc = await userConfigRef.get();
+        if (doc.exists) {
+            return doc.data().whatsapp || '5511966378328';
+        }
+        return '5511966378328';
+    } catch (error) {
+        console.error('Error getting whatsapp from Firestore: ', error);
+        return '5511966378328';
+    }
+}
 
-        // Auto-snapshot (same keys as admin) - keeps last 5 versions
-        (function() {
-            var KEYS = ['hb_prices', 'hb_orders', 'hb_loyalty', 'hb_loyalty_config', 'hb_stock', 'hb_status', 'hb_hours', 'hb_whatsapp', 'hb_delivery_estimate', 'hb_delivery_fee'];
-            function autoBackup() {
-                try {
-                    var snapshots = [];
-                    var raw = localStorage.getItem('hb_auto_snapshots');
-                    if (raw) { try { snapshots = JSON.parse(raw) || []; } catch(e) { snapshots = []; } }
-                    var data = {};
-                    KEYS.forEach(function(k) {
-                        var v = localStorage.getItem(k);
-                        if (v !== null) {
-                            try { data[k] = JSON.parse(v); }
-                            catch(e) { data[k] = v; }
-                        }
-                    });
-                    snapshots.push({ at: new Date().toISOString(), data: data });
-                    if (snapshots.length > 5) snapshots.shift();
-                    localStorage.setItem('hb_auto_snapshots', JSON.stringify(snapshots));
-                } catch(e) { /* silent */ }
-            }
-            autoBackup();
-        })();
-    </script>
-</body>
-</html>
+async function getDeliveryFee() {
+    try {
+        const doc = await userConfigRef.get();
+        if (doc.exists) {
+            return doc.data().deliveryFee || 10;
+        }
+        return 10;
+    } catch (error) {
+        console.error('Error getting delivery fee from Firestore: ', error);
+        return 10;
+    }
+}
+
+async function getDeliveryEstimate() {
+    try {
+        const doc = await userConfigRef.get();
+        if (doc.exists) {
+            return doc.data().deliveryEstimate || '60-90 min';
+        }
+        return '60-90 min';
+    } catch (error) {
+        console.error('Error getting delivery estimate from Firestore: ', error);
+        return '60-90 min';
+    }
+}
+
+// ── Real-time Listener for Items ──
+function setupItemsRealtimeListener(callback) {
+    if (!userItemsRef) return;
+
+    userItemsRef.doc('default').collection('items').onSnapshot((snapshot) => {
+        const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        if (callback) callback(items);
+    }, (error) => {
+        console.error('Error listening to items: ', error);
+    });
+}
+
+// ── Initialize Firebase on page load ──
+async function initializeFirebase() {
+    await initializeFirebaseCollections();
+
+    // Set up real-time listener for items
+    setupItemsRealtimeListener((items) => {
+        if (typeof renderMenu === 'function') {
+            renderMenu(items);
+        }
+    });
+}
+
+// ── Migrate from localStorage to Firestore (if needed) ──
+async function migrateFromLocalStorage() {
+    if (localStorage.getItem('hb_prices')) {
+        try {
+            const localItems = JSON.parse(localStorage.getItem('hb_prices'));
+            await userItemsRef.doc('default').set({ items: localItems }, { merge: true });
+            localStorage.removeItem('hb_prices');
+
+            showToast('Dados migrados do localStorage para o Firestore!');
+        } catch (error) {
+            console.error('Error during migration: ', error);
+        }
+    }
+}
+
+// ── Toast Notification ──
+function showToast(message) {
+    var toast = document.getElementById('toast');
+    if (!toast) return;
+    toast.textContent = message;
+    toast.classList.add('show');
+    setTimeout(function() {
+        toast.classList.remove('show');
+    }, 3000);
+}
+
+// ── Initialize on page load ──
+document.addEventListener('DOMContentLoaded', async function() {
+    await initializeFirebase();
+    await migrateFromLocalStorage();
+
+    // Override getItems to use Firestore
+    window.getItems = getItems;
+    window.getWhatsapp = getWhatsapp;
+    window.getDeliveryFee = getDeliveryFee;
+    window.getDeliveryEstimate = getDeliveryEstimate;
+});
+
+console.log('Firebase and Firestore loaded and configured successfully!');
