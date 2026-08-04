@@ -1192,21 +1192,21 @@
                 item.price = item.discount > 0 ? calcFinal(item.original, item.discount) : item.original;
             });
             firebaseSaveItems(items);
-            showToast('Preços salvos com sucesso!');
-        }
-
-        function toggleActive(idx) {
-            var items = getItems();
-            if (!items[idx]) return;
-            if (getItemMissingStock(items[idx]).length > 0) {
-                showToast('"' + items[idx].name + '" não pode ser ativado: faltam matérias-primas no estoque');
-                return;
-            }
-             items[idx].active = !(items[idx].active !== false);
-             firebaseSaveItems(items);
-             renderPrices();
-             showToast(items[idx].name + (items[idx].active ? ' ativado' : ' pausado'));
+             showToast('Preços salvos com sucesso!');
          } catch(e) { console.error('renderPrices error:', e); }
+     }
+
+     function toggleActive(idx) {
+         var items = getItems();
+         if (!items[idx]) return;
+         if (getItemMissingStock(items[idx]).length > 0) {
+             showToast('"' + items[idx].name + '" não pode ser ativado: faltam matérias-primas no estoque');
+             return;
+         }
+          items[idx].active = !(items[idx].active !== false);
+          firebaseSaveItems(items);
+          renderPrices();
+          showToast(items[idx].name + (items[idx].active ? ' ativado' : ' pausado'));
      }
 
      /* ─── New / Edit Product Modal ─── */
